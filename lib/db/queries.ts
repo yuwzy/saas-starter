@@ -79,8 +79,21 @@ export async function getUserWithTeam(userId: number) {
 }
 
 export async function getActivityLogs() {
-  const user = await getUser();
-  if (!user) {
+  const sessionCookie = (await cookies()).get('session');
+  if (!sessionCookie || !sessionCookie.value) {
+    throw new Error('User not authenticated');
+  }
+
+  const sessionData = await verifyToken(sessionCookie.value);
+  if (
+    !sessionData ||
+    !sessionData.user ||
+    typeof sessionData.user.id !== 'number'
+  ) {
+    throw new Error('User not authenticated');
+  }
+
+  if (new Date(sessionData.expires) < new Date()) {
     throw new Error('User not authenticated');
   }
 
@@ -94,7 +107,10 @@ export async function getActivityLogs() {
     })
     .from(activityLogs)
     .leftJoin(users, eq(activityLogs.userId, users.id))
-    .where(eq(activityLogs.userId, user.id))
+    .where(and(
+      eq(activityLogs.userId, sessionData.user.id),
+      isNull(users.deletedAt)
+    ))
     .orderBy(desc(activityLogs.timestamp))
     .limit(10);
 }
