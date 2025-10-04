@@ -1,6 +1,6 @@
 import { desc, and, eq, isNull } from 'drizzle-orm';
 import { db } from './drizzle';
-import { activityLogs, teamMembers, teams, users } from './schema';
+import { activityLogs, teamMembers, teams, users, articles } from './schema';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
 
@@ -127,4 +127,97 @@ export async function getTeamForUser() {
   });
 
   return result?.team || null;
+}
+
+// Article queries
+export async function getArticles() {
+  const user = await getUser();
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  const teamData = await getTeamForUser();
+  if (!teamData) {
+    throw new Error('User not part of any team');
+  }
+
+  return await db
+    .select({
+      id: articles.id,
+      title: articles.title,
+      slug: articles.slug,
+      excerpt: articles.excerpt,
+      status: articles.status,
+      publishedAt: articles.publishedAt,
+      createdAt: articles.createdAt,
+      updatedAt: articles.updatedAt,
+      authorName: users.name,
+      authorEmail: users.email,
+    })
+    .from(articles)
+    .leftJoin(users, eq(articles.userId, users.id))
+    .where(and(eq(articles.teamId, teamData.id), isNull(articles.deletedAt)))
+    .orderBy(desc(articles.createdAt));
+}
+
+export async function getArticleById(id: number) {
+  const user = await getUser();
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  const teamData = await getTeamForUser();
+  if (!teamData) {
+    throw new Error('User not part of any team');
+  }
+
+  const result = await db
+    .select({
+      article: articles,
+      authorName: users.name,
+      authorEmail: users.email,
+    })
+    .from(articles)
+    .leftJoin(users, eq(articles.userId, users.id))
+    .where(
+      and(
+        eq(articles.id, id),
+        eq(articles.teamId, teamData.id),
+        isNull(articles.deletedAt)
+      )
+    )
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getArticleBySlug(slug: string) {
+  const user = await getUser();
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  const teamData = await getTeamForUser();
+  if (!teamData) {
+    throw new Error('User not part of any team');
+  }
+
+  const result = await db
+    .select({
+      article: articles,
+      authorName: users.name,
+      authorEmail: users.email,
+    })
+    .from(articles)
+    .leftJoin(users, eq(articles.userId, users.id))
+    .where(
+      and(
+        eq(articles.slug, slug),
+        eq(articles.teamId, teamData.id),
+        isNull(articles.deletedAt)
+      )
+    )
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
 }
