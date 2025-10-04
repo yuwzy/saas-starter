@@ -1,6 +1,6 @@
-import { desc, and, eq, isNull } from 'drizzle-orm';
+import { desc, and, eq, isNull, or } from 'drizzle-orm';
 import { db } from './drizzle';
-import { activityLogs, teamMembers, teams, users } from './schema';
+import { activityLogs, teamMembers, teams, users, articles, categories, tags, articleTags, ArticleStatus } from './schema';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
 
@@ -127,4 +127,116 @@ export async function getTeamForUser() {
   });
 
   return result?.team || null;
+}
+
+/**
+ * 記事一覧を取得（認証済みユーザーは自分の記事、未認証ユーザーは公開記事のみ）
+ */
+export async function getArticles() {
+  const user = await getUser();
+
+  const whereCondition = user
+    ? or(
+        eq(articles.userId, user.id),
+        eq(articles.status, ArticleStatus.PUBLISHED)
+      )
+    : eq(articles.status, ArticleStatus.PUBLISHED);
+
+  return await db.query.articles.findMany({
+    where: whereCondition,
+    with: {
+      user: {
+        columns: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      category: {
+        columns: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+      articleTags: {
+        with: {
+          tag: {
+            columns: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: desc(articles.createdAt),
+  });
+}
+
+/**
+ * 記事詳細を取得（認証チェック付き）
+ */
+export async function getArticleById(id: number) {
+  const user = await getUser();
+
+  const article = await db.query.articles.findFirst({
+    where: eq(articles.id, id),
+    with: {
+      user: {
+        columns: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      category: {
+        columns: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+      articleTags: {
+        with: {
+          tag: {
+            columns: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!article) {
+    return null;
+  }
+
+  // 下書きまたは非公開の記事は、作成者のみ閲覧可能
+  if (
+    article.status !== ArticleStatus.PUBLISHED &&
+    (!user || article.userId !== user.id)
+  ) {
+    return null;
+  }
+
+  return article;
+}
+
+/**
+ * カテゴリ一覧を取得
+ */
+export async function getCategories() {
+  return await db.select().from(categories).orderBy(categories.name);
+}
+
+/**
+ * タグ一覧を取得
+ */
+export async function getTags() {
+  return await db.select().from(tags).orderBy(tags.name);
 }
