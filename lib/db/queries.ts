@@ -1,8 +1,9 @@
 import { desc, and, eq, isNull } from 'drizzle-orm';
 import { db } from './drizzle';
-import { activityLogs, teamMembers, teams, users } from './schema';
+import { activityLogs, teamMembers, teams, users, articles } from './schema';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
+import type { NewArticle } from './schema';
 
 export async function getUser() {
   const sessionCookie = (await cookies()).get('session');
@@ -127,4 +128,77 @@ export async function getTeamForUser() {
   });
 
   return result?.team || null;
+}
+
+// Article queries
+export async function getArticlesForTeam(teamId: number) {
+  return await db
+    .select({
+      id: articles.id,
+      title: articles.title,
+      status: articles.status,
+      authorName: users.name,
+      createdAt: articles.createdAt,
+      updatedAt: articles.updatedAt,
+    })
+    .from(articles)
+    .leftJoin(users, eq(articles.authorId, users.id))
+    .where(eq(articles.teamId, teamId))
+    .orderBy(desc(articles.createdAt));
+}
+
+export async function getArticleById(articleId: number, teamId: number) {
+  const result = await db
+    .select({
+      id: articles.id,
+      teamId: articles.teamId,
+      authorId: articles.authorId,
+      title: articles.title,
+      content: articles.content,
+      status: articles.status,
+      publishedAt: articles.publishedAt,
+      createdAt: articles.createdAt,
+      updatedAt: articles.updatedAt,
+      authorName: users.name,
+    })
+    .from(articles)
+    .leftJoin(users, eq(articles.authorId, users.id))
+    .where(and(eq(articles.id, articleId), eq(articles.teamId, teamId)))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function createArticle(data: NewArticle) {
+  const result = await db
+    .insert(articles)
+    .values(data)
+    .returning();
+  return result[0];
+}
+
+export async function updateArticle(
+  articleId: number,
+  teamId: number,
+  data: Partial<NewArticle>
+) {
+  const result = await db
+    .update(articles)
+    .set({
+      ...data,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(articles.id, articleId), eq(articles.teamId, teamId)))
+    .returning();
+
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function deleteArticle(articleId: number, teamId: number) {
+  const result = await db
+    .delete(articles)
+    .where(and(eq(articles.id, articleId), eq(articles.teamId, teamId)))
+    .returning();
+
+  return result.length > 0 ? result[0] : null;
 }
