@@ -1,8 +1,9 @@
 import { desc, and, eq, isNull } from 'drizzle-orm';
 import { db } from './drizzle';
-import { activityLogs, teamMembers, teams, users } from './schema';
+import { activityLogs, teamMembers, teams, users, articles } from './schema';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
+import type { NewArticle } from './schema';
 
 export async function getUser() {
   const sessionCookie = (await cookies()).get('session');
@@ -127,4 +128,89 @@ export async function getTeamForUser() {
   });
 
   return result?.team || null;
+}
+
+export async function getArticles() {
+  return await db
+    .select({
+      id: articles.id,
+      title: articles.title,
+      slug: articles.slug,
+      excerpt: articles.excerpt,
+      status: articles.status,
+      publishedAt: articles.publishedAt,
+      createdAt: articles.createdAt,
+      authorName: users.name,
+      authorEmail: users.email,
+    })
+    .from(articles)
+    .leftJoin(users, eq(articles.authorId, users.id))
+    .orderBy(desc(articles.createdAt));
+}
+
+export async function getArticleBySlug(slug: string) {
+  const result = await db
+    .select({
+      id: articles.id,
+      title: articles.title,
+      slug: articles.slug,
+      content: articles.content,
+      excerpt: articles.excerpt,
+      status: articles.status,
+      publishedAt: articles.publishedAt,
+      createdAt: articles.createdAt,
+      updatedAt: articles.updatedAt,
+      authorId: articles.authorId,
+      authorName: users.name,
+      authorEmail: users.email,
+    })
+    .from(articles)
+    .leftJoin(users, eq(articles.authorId, users.id))
+    .where(eq(articles.slug, slug))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getArticleById(id: number) {
+  const result = await db
+    .select({
+      id: articles.id,
+      title: articles.title,
+      slug: articles.slug,
+      content: articles.content,
+      excerpt: articles.excerpt,
+      status: articles.status,
+      publishedAt: articles.publishedAt,
+      createdAt: articles.createdAt,
+      updatedAt: articles.updatedAt,
+      authorId: articles.authorId,
+      authorName: users.name,
+      authorEmail: users.email,
+    })
+    .from(articles)
+    .leftJoin(users, eq(articles.authorId, users.id))
+    .where(eq(articles.id, id))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function createArticle(data: NewArticle) {
+  const result = await db.insert(articles).values(data).returning();
+  return result[0];
+}
+
+export async function updateArticle(id: number, data: Partial<NewArticle>) {
+  await db
+    .update(articles)
+    .set({
+      ...data,
+      updatedAt: new Date(),
+    })
+    .where(eq(articles.id, id));
+}
+
+export async function deleteArticle(id: number) {
+  await db.delete(articles).where(eq(articles.id, id));
 }
