@@ -128,6 +128,101 @@ export type TeamDataWithMembers = Team & {
   })[];
 };
 
+export const articles = pgTable('articles', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id),
+  title: varchar('title', { length: 255 }).notNull(),
+  slug: varchar('slug', { length: 255 }).notNull().unique(),
+  content: text('content').notNull(),
+  excerpt: text('excerpt'),
+  status: varchar('status', { length: 20 }).notNull().default('draft'),
+  publishedAt: timestamp('published_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const categories = pgTable('categories', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 100 }).notNull(),
+  slug: varchar('slug', { length: 100 }).notNull().unique(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const tags = pgTable('tags', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 50 }).notNull(),
+  slug: varchar('slug', { length: 50 }).notNull().unique(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const articleCategories = pgTable('article_categories', {
+  id: serial('id').primaryKey(),
+  articleId: integer('article_id')
+    .notNull()
+    .references(() => articles.id),
+  categoryId: integer('category_id')
+    .notNull()
+    .references(() => categories.id),
+});
+
+export const articleTags = pgTable('article_tags', {
+  id: serial('id').primaryKey(),
+  articleId: integer('article_id')
+    .notNull()
+    .references(() => articles.id),
+  tagId: integer('tag_id')
+    .notNull()
+    .references(() => tags.id),
+});
+
+export const articlesRelations = relations(articles, ({ one, many }) => ({
+  author: one(users, {
+    fields: [articles.userId],
+    references: [users.id],
+  }),
+  articleCategories: many(articleCategories),
+  articleTags: many(articleTags),
+}));
+
+export const categoriesRelations = relations(categories, ({ many }) => ({
+  articleCategories: many(articleCategories),
+}));
+
+export const tagsRelations = relations(tags, ({ many }) => ({
+  articleTags: many(articleTags),
+}));
+
+export const articleCategoriesRelations = relations(articleCategories, ({ one }) => ({
+  article: one(articles, {
+    fields: [articleCategories.articleId],
+    references: [articles.id],
+  }),
+  category: one(categories, {
+    fields: [articleCategories.categoryId],
+    references: [categories.id],
+  }),
+}));
+
+export const articleTagsRelations = relations(articleTags, ({ one }) => ({
+  article: one(articles, {
+    fields: [articleTags.articleId],
+    references: [articles.id],
+  }),
+  tag: one(tags, {
+    fields: [articleTags.tagId],
+    references: [tags.id],
+  }),
+}));
+
+export type Article = typeof articles.$inferSelect;
+export type NewArticle = typeof articles.$inferInsert;
+export type Category = typeof categories.$inferSelect;
+export type NewCategory = typeof categories.$inferInsert;
+export type Tag = typeof tags.$inferSelect;
+export type NewTag = typeof tags.$inferInsert;
+
 export enum ActivityType {
   SIGN_UP = 'SIGN_UP',
   SIGN_IN = 'SIGN_IN',
