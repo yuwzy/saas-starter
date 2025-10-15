@@ -315,6 +315,130 @@ All articles have these required fields for authorization ([lib/db/schema.ts:132
 - `userId`: Links article to author (required, foreign key)
 - `status`: Publication status ('draft', 'published', etc.)
 
+## UI Component Guidelines
+
+### Component Library Standards
+
+**Use shadcn/ui as the foundation:**
+- All UI components should leverage shadcn/ui primitives (based on Radix UI)
+- Existing shadcn/ui components are located in [components/ui/](components/ui/) (button, input, badge, card, etc.)
+- Install new shadcn/ui components via `pnpm dlx shadcn@latest add <component-name>` when needed
+
+**Component organization:**
+- **`/components/ui/*`**: shadcn/ui components and reusable primitive components
+- **`/components/*`**: Business logic components and feature-specific compositions
+- Keep components in the route directory (e.g., `app/(dashboard)/dashboard/articles/article-list.tsx`) when they are specific to a single page/route
+
+### Styling and Design System
+
+**Follow the established color scheme:**
+- The project uses a complete design token system defined in [app/globals.css](app/globals.css)
+- **ALWAYS use semantic color tokens** instead of arbitrary colors:
+  - `text-foreground`, `text-muted-foreground` for text
+  - `bg-background`, `bg-card`, `bg-muted`, `bg-accent` for backgrounds
+  - `border-border`, `border-input` for borders
+  - `text-destructive`, `bg-destructive` for destructive actions
+  - `text-primary`, `bg-primary` for primary actions
+- Support both light and dark modes via CSS variables
+- Reference color tokens in `globals.css:86-196` for the complete palette
+
+**Tailwind utility usage:**
+- Use Tailwind utility classes exclusively (no CSS modules or inline styles)
+- Follow the existing patterns in [components/ui/button.tsx](components/ui/button.tsx) and [app/(dashboard)/dashboard/articles/article-list.tsx](app/(dashboard)/dashboard/articles/article-list.tsx)
+- Border radius: Use `rounded-md`, `rounded-lg` (respects `--radius` CSS variable)
+- Spacing: Use consistent spacing scale (`gap-2`, `gap-4`, `space-y-4`, etc.)
+- Transitions: Add `transition-colors` or `transition-all` for interactive states
+
+### Component Patterns
+
+**Preferred structure for custom components:**
+```typescript
+'use client'; // Only if client interactivity is needed
+
+import { ComponentType } from '@/components/ui/component';
+import { cn } from '@/lib/utils';
+
+interface ComponentNameProps {
+  // Explicit prop types
+  variant?: 'default' | 'outline';
+  className?: string;
+}
+
+export function ComponentName({
+  variant = 'default',
+  className,
+  ...props
+}: ComponentNameProps) {
+  return (
+    <div className={cn('base-classes', className)} {...props}>
+      {/* Implementation */}
+    </div>
+  );
+}
+```
+
+**Key principles:**
+- Export named functions (not default exports)
+- Use TypeScript interfaces for props
+- Leverage `cn()` utility from `@/lib/utils` for className merging
+- Compose from shadcn/ui primitives when possible
+- Follow Server Component patterns unless client interactivity is required
+
+**Examples of good patterns:**
+- Status badges: [article-list.tsx:37](app/(dashboard)/dashboard/articles/article-list.tsx#L37) - small, reusable, co-located
+- Form components: Use shadcn/ui `<Input>`, `<Label>`, `<Button>` with consistent styling
+- Interactive lists: Use semantic color tokens for hover states and borders
+
+### Variant Systems
+
+When building components with variants, use `class-variance-authority` (cva) like shadcn/ui components:
+
+```typescript
+import { cva, type VariantProps } from 'class-variance-authority';
+
+const componentVariants = cva(
+  'base-classes', // Base styles
+  {
+    variants: {
+      variant: {
+        default: 'bg-primary text-primary-foreground',
+        outline: 'border bg-background',
+      },
+      size: {
+        default: 'h-9 px-4',
+        sm: 'h-8 px-3',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      size: 'default',
+    },
+  }
+);
+
+interface Props extends VariantProps<typeof componentVariants> {
+  // Additional props
+}
+```
+
+### Design Token Reference
+
+All color tokens support light/dark modes automatically. Key tokens:
+
+| Token | Usage |
+|-------|-------|
+| `foreground` | Primary text color |
+| `muted-foreground` | Secondary/helper text |
+| `background` | Page background |
+| `card` / `card-foreground` | Card containers |
+| `border` / `input` | Border colors (same value) |
+| `primary` / `primary-foreground` | Primary actions/CTAs |
+| `destructive` / `destructive-foreground` | Delete/error actions |
+| `accent` / `accent-foreground` | Hover/focus states |
+| `ring` | Focus ring color |
+
+Use these tokens via Tailwind classes: `bg-{token}`, `text-{token}`, `border-{token}`.
+
 ## Testing
 
 No automated tests configured. Manually test in `pnpm dev`. Use Stripe test cards (4242 4242 4242 4242) for payments.
