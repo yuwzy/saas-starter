@@ -5,12 +5,26 @@ import { createArticleSchema } from '@/lib/validations/article';
 
 /**
  * GET /api/articles
- * 記事一覧を取得するAPIエンドポイント
+ * 記事一覧を取得するAPIエンドポイント（認証必須）
+ * チームの記事のみを返す
  * @param request - Next.jsリクエストオブジェクト
  * @returns 記事一覧とページネーション情報
  */
 export async function GET(request: NextRequest) {
   try {
+    const user = await getUser();
+    if (!user) {
+      return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
+    }
+
+    const team = await getTeamForUser();
+    if (!team) {
+      return NextResponse.json(
+        { error: 'チームが見つかりません' },
+        { status: 404 }
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '10', 10);
@@ -30,6 +44,7 @@ export async function GET(request: NextRequest) {
       userId,
       categoryId,
       search,
+      teamId: team.id,
     });
 
     return NextResponse.json(result);

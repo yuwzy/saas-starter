@@ -199,6 +199,7 @@ export type ArticleTag = typeof articleTags.$inferSelect;
 export type NewArticleTag = typeof articleTags.$inferInsert;
 
 export type ArticleWithDetails = Article & {
+  team: Team;
   author: Pick<User, 'id' | 'name' | 'email'>;
   category: Category | null;
   tags: ArticleTag[];

@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 import {
   createArticleSchema,
   updateArticleSchema,
@@ -39,10 +40,15 @@ export async function createArticleAction(
       return { error: result.error.errors[0].message };
     }
 
+    // Get cookies to pass to API route
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('session');
+
     const response = await fetch(`${process.env.BASE_URL}/api/articles`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(sessionCookie ? { Cookie: `session=${sessionCookie.value}` } : {}),
       },
       body: JSON.stringify(result.data),
     });
@@ -84,10 +90,15 @@ export async function updateArticleAction(
       return { error: result.error.errors[0].message };
     }
 
+    // Get cookies to pass to API route
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('session');
+
     const response = await fetch(`${process.env.BASE_URL}/api/articles/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        ...(sessionCookie ? { Cookie: `session=${sessionCookie.value}` } : {}),
       },
       body: JSON.stringify(result.data),
     });
@@ -115,8 +126,15 @@ export async function updateArticleAction(
  */
 export async function deleteArticleAction(id: number): Promise<ActionState> {
   try {
+    // Get cookies to pass to API route
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('session');
+
     const response = await fetch(`${process.env.BASE_URL}/api/articles/${id}`, {
       method: 'DELETE',
+      headers: {
+        ...(sessionCookie ? { Cookie: `session=${sessionCookie.value}` } : {}),
+      },
     });
 
     if (!response.ok) {

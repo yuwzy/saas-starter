@@ -4,6 +4,7 @@ import {
   updateArticle,
   deleteArticle,
   canUserModifyArticle,
+  canUserAccessArticle,
 } from '@/lib/db/articles-queries';
 import { getUser } from '@/lib/db/queries';
 import { updateArticleSchema } from '@/lib/validations/article';
@@ -36,6 +37,28 @@ export async function GET(
       return NextResponse.json(
         { error: '記事が見つかりません' },
         { status: 404 }
+      );
+    }
+
+    // 公開記事は誰でもアクセス可能
+    if (article.status === 'published') {
+      return NextResponse.json(article);
+    }
+
+    // 下書き・非公開記事はチームメンバーのみアクセス可能
+    const user = await getUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: '認証が必要です' },
+        { status: 401 }
+      );
+    }
+
+    const canAccess = await canUserAccessArticle(articleId, user.id);
+    if (!canAccess) {
+      return NextResponse.json(
+        { error: 'この記事にアクセスする権限がありません' },
+        { status: 403 }
       );
     }
 
