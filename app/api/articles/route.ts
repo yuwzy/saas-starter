@@ -11,6 +11,7 @@ import { createArticleSchema } from '@/lib/validations/article';
  */
 export async function GET(request: NextRequest) {
   try {
+    const user = await getUser();
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '10', 10);
@@ -23,6 +24,13 @@ export async function GET(request: NextRequest) {
       : undefined;
     const search = searchParams.get('search') || undefined;
 
+    // 認証されている場合は、チームの記事を取得
+    let teamId: number | undefined;
+    if (user) {
+      const team = await getTeamForUser();
+      teamId = team?.id;
+    }
+
     const result = await getArticles({
       page,
       limit,
@@ -30,6 +38,8 @@ export async function GET(request: NextRequest) {
       userId,
       categoryId,
       search,
+      teamId,
+      includePublicOnly: !user, // 未認証の場合は公開記事のみ
     });
 
     return NextResponse.json(result);

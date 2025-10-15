@@ -220,6 +220,95 @@ See `.env.example`. Required:
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`: From Stripe dashboard
 - `BASE_URL`: `http://localhost:3000` for dev
 
+## Authorization Rules
+
+### Team-based Access Control for Articles
+
+All articles belong to a team and have access control based on team membership and publication status.
+
+#### Access Rules
+
+**Public articles (status: 'published'):**
+- Can be viewed by anyone (authenticated or not)
+- No team membership check required
+
+**Draft/private articles (status: 'draft' or other non-published statuses):**
+- Can only be accessed by team members
+- Requires team membership verification
+
+#### Operations and Required Permissions
+
+| Operation | Requirement | Check Function |
+|-----------|------------|----------------|
+| Create article | Team membership | User must be member of target team |
+| Update article | Team membership | `canUserModifyArticle()` |
+| Delete article | Team membership | `canUserModifyArticle()` |
+| View draft/private article | Team membership | `canUserAccessArticle()` |
+| View published article | None | Public access |
+
+#### Implementation Pattern
+
+**For mutations (create/update/delete):**
+```typescript
+// API Route: Check team membership before modification
+const user = await getUser();
+if (!user) {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+}
+
+const canModify = await canUserModifyArticle(articleId, user.id);
+if (!canModify) {
+  return NextResponse.json({ error: 'No permission' }, { status: 403 });
+}
+```
+
+**For viewing non-public articles:**
+```typescript
+// API Route: Check access for draft/private articles
+const user = await getUser();
+const article = await getArticleById(articleId);
+
+// Public articles are accessible to everyone
+if (article.status === 'published') {
+  return NextResponse.json(article);
+}
+
+// Draft/private articles require team membership
+if (!user) {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+}
+
+const canAccess = await canUserAccessArticle(articleId, user.id);
+if (!canAccess) {
+  return NextResponse.json({ error: 'No permission' }, { status: 403 });
+}
+```
+
+**For listing articles:**
+```typescript
+// Query function: Filter by team or public status
+const result = await getArticles({
+  teamId: user ? teamId : undefined,  // Filter by team for members
+  includePublicOnly: !user,           // Public only for unauthenticated users
+  // ... other filters
+});
+```
+
+#### Key Query Functions
+
+Located in [lib/db/articles-queries.ts](lib/db/articles-queries.ts):
+
+- **`canUserAccessArticle(articleId, userId)`**: Returns `true` if user can view the article (published = everyone, draft = team members only)
+- **`canUserModifyArticle(articleId, userId)`**: Returns `true` if user can edit/delete the article (team members only)
+- **`getArticles(options)`**: Supports filtering by `teamId` and `includePublicOnly` for proper access control
+
+#### Schema Fields
+
+All articles have these required fields for authorization ([lib/db/schema.ts:132](lib/db/schema.ts#L132)):
+- `teamId`: Links article to owning team (required, foreign key)
+- `userId`: Links article to author (required, foreign key)
+- `status`: Publication status ('draft', 'published', etc.)
+
 ## Testing
 
 No automated tests configured. Manually test in `pnpm dev`. Use Stripe test cards (4242 4242 4242 4242) for payments.
