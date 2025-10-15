@@ -235,7 +235,7 @@ export function ArticleForm({ article, categories }: ArticleFormProps) {
           )}
           {formState.success && (
             <div
-              className="p-3 rounded-md bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100 text-sm"
+              className="p-3 rounded-md bg-accent text-accent-foreground text-sm"
               role="status"
             >
               {formState.success}
@@ -247,7 +247,6 @@ export function ArticleForm({ article, categories }: ArticleFormProps) {
             <Button
               type="submit"
               disabled={isPending}
-              className="bg-orange-500 hover:bg-orange-600"
               aria-label={isEditMode ? '記事を更新' : '記事を作成'}
             >
               {isPending ? (

@@ -333,14 +333,17 @@ All articles have these required fields for authorization ([lib/db/schema.ts:132
 
 **Follow the established color scheme:**
 - The project uses a complete design token system defined in [app/globals.css](app/globals.css)
+- **Primary brand color is orange** (`orange-500`/`orange-600` in Tailwind, or `primary` token in the design system)
 - **ALWAYS use semantic color tokens** instead of arbitrary colors:
   - `text-foreground`, `text-muted-foreground` for text
   - `bg-background`, `bg-card`, `bg-muted`, `bg-accent` for backgrounds
   - `border-border`, `border-input` for borders
   - `text-destructive`, `bg-destructive` for destructive actions
-  - `text-primary`, `bg-primary` for primary actions
+  - `text-primary`, `bg-primary` for primary actions (CTAs, submit buttons, brand highlights)
+  - `text-primary-foreground`, `bg-primary-foreground` for text/background on primary-colored elements
+- The `primary` token is set to orange (HSL: `24.6 95% 53.1%` for light mode, `20.5 90.2% 48.2%` for dark mode)
 - Support both light and dark modes via CSS variables
-- Reference color tokens in `globals.css:86-196` for the complete palette
+- Reference color tokens in `globals.css:85-227` for the complete palette
 
 **Tailwind utility usage:**
 - Use Tailwind utility classes exclusively (no CSS modules or inline styles)
@@ -425,19 +428,22 @@ interface Props extends VariantProps<typeof componentVariants> {
 
 All color tokens support light/dark modes automatically. Key tokens:
 
-| Token | Usage |
-|-------|-------|
-| `foreground` | Primary text color |
-| `muted-foreground` | Secondary/helper text |
-| `background` | Page background |
-| `card` / `card-foreground` | Card containers |
-| `border` / `input` | Border colors (same value) |
-| `primary` / `primary-foreground` | Primary actions/CTAs |
-| `destructive` / `destructive-foreground` | Delete/error actions |
-| `accent` / `accent-foreground` | Hover/focus states |
-| `ring` | Focus ring color |
+| Token | Usage | Example |
+|-------|-------|---------|
+| `foreground` | Primary text color | Main headings, body text |
+| `muted-foreground` | Secondary/helper text | Descriptions, labels |
+| `background` | Page background | Main page container |
+| `card` / `card-foreground` | Card containers | Content cards, panels |
+| `border` / `input` | Border colors (same value) | Form inputs, dividers |
+| `primary` / `primary-foreground` | **Primary actions/CTAs (Orange)** | Submit buttons, "New" buttons, active filters |
+| `destructive` / `destructive-foreground` | Delete/error actions | Delete buttons, error messages |
+| `accent` / `accent-foreground` | Hover/focus states, success messages | Hover backgrounds, success alerts |
+| `secondary` / `secondary-foreground` | Secondary actions | Badge backgrounds, secondary buttons |
+| `ring` | Focus ring color (Orange) | Focus outlines on interactive elements |
 
 Use these tokens via Tailwind classes: `bg-{token}`, `text-{token}`, `border-{token}`.
+
+**Migration note:** If you find hardcoded `orange-500` or `orange-600` classes in existing code, prefer using `bg-primary` and `hover:bg-primary/90` instead for consistency with the design system.
 
 ## Testing
 
