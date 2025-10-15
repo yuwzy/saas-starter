@@ -32,6 +32,33 @@ stripe login
 stripe listen --forward-to localhost:3000/api/stripe/webhook
 ```
 
+## Architecture Principles
+
+### API-First Design
+- **All data mutations MUST go through API routes** (`app/api/*`)
+- Server Actions should ONLY handle:
+  - Form validation and submission
+  - Calling API routes via `fetch()`
+  - Client-side redirects (`redirect()`, `revalidatePath()`)
+- **Direct database access from Server Actions is prohibited**
+- API routes return standardized JSON responses with proper HTTP status codes
+
+### Data Access Layer
+- **All SQL queries MUST be abstracted in** `lib/db/queries.ts` or domain-specific query files (`lib/db/*-queries.ts`)
+- **Never write raw SQL or direct `db.*` calls in:**
+  - API routes (`app/api/*`)
+  - Server Actions (`actions.ts`)
+  - Page components
+- Query functions must be typed with Drizzle schema types
+- Use Drizzle's relational query syntax (`db.query.*`) over raw selects when fetching nested data
+
+### Type Safety
+- **Always use inferred types from Drizzle schema** (e.g., `User`, `NewUser`, `Article`)
+- **Avoid `any` types** - use `unknown` and type guards if needed
+- Use generics for reusable utility functions
+- Export composite types for complex data structures (e.g., `TeamDataWithMembers`, `ArticleWithDetails`)
+- Validate API request bodies with Zod schemas before processing
+
 ## Architecture
 
 ### Route Structure
@@ -75,15 +102,33 @@ stripe listen --forward-to localhost:3000/api/stripe/webhook
 
 ### Server Actions Pattern
 
-Server Actions live in `actions.ts` files alongside routes:
-- **Form actions**: Use `validatedActionWithUser()` wrapper for forms with Zod validation
-- **Inline actions**: Use `withTeam()` for actions needing team context
+Server Actions live in `actions.ts` files alongside routes, but must follow API-first principles:
+- **Form actions**: Use `validatedActionWithUser()` wrapper for Zod validation
+- **Data flow**: Action validates → calls API route → returns response to client
 - **Return format**: `{ error?: string, success?: string }` for form state
-- Example: [app/(dashboard)/dashboard/articles/actions.ts:1](app/(dashboard)/dashboard/articles/actions.ts#L1)
+- **Never access database directly** - always use API routes for mutations
+- Example pattern:
+  ```typescript
+  export const createArticle = validatedActionWithUser(
+    articleSchema,
+    async (data, formData, user) => {
+      const response = await fetch('/api/articles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        return { error: 'Failed to create article' };
+      }
+      revalidatePath('/dashboard/articles');
+      return { success: 'Article created' };
+    }
+  );
+  ```
 
 ### Activity Logging
 
-Use `ActivityType` enum ([lib/db/schema.ts:207](lib/db/schema.ts#L207)) for consistent audit events. Log user actions via `activity_logs` inserts in Server Actions.
+Use `ActivityType` enum ([lib/db/schema.ts:207](lib/db/schema.ts#L207)) for consistent audit events. Activity logs should be created in API routes (not Server Actions) using query functions from `lib/db/queries.ts`.
 
 ## Code Style
 
@@ -96,12 +141,43 @@ Use `ActivityType` enum ([lib/db/schema.ts:207](lib/db/schema.ts#L207)) for cons
 
 ## Common Patterns
 
+### Adding a new feature with data mutations
+
+1. **Define schema types** in [lib/db/schema.ts:1](lib/db/schema.ts#L1) and run `pnpm db:generate && pnpm db:migrate`
+2. **Create query functions** in `lib/db/queries.ts` or `lib/db/[feature]-queries.ts`:
+   ```typescript
+   export async function getArticles(teamId: number): Promise<ArticleWithDetails[]> {
+     return await db.query.articles.findMany({
+       where: eq(articles.teamId, teamId),
+       with: { author: true, category: true, tags: true }
+     });
+   }
+   ```
+3. **Create API route** in `app/api/[feature]/route.ts`:
+   ```typescript
+   export async function POST(request: Request) {
+     const user = await getUser();
+     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+     const body = await request.json();
+     const validated = schema.safeParse(body);
+     if (!validated.success) {
+       return NextResponse.json({ error: validated.error }, { status: 400 });
+     }
+
+     const result = await createArticle(validated.data); // query function
+     return NextResponse.json(result, { status: 201 });
+   }
+   ```
+4. **Create Server Action** in `actions.ts` that calls the API route
+5. **Create UI page** in `app/(dashboard)/dashboard/[feature]/page.tsx` using `getUser()` for read operations
+
 ### Adding a new authenticated page
 
 1. Create route in `app/(dashboard)/dashboard/your-page/page.tsx`
 2. Use `getUser()` from queries to verify auth in Server Component
-3. Add activity logging if needed
-4. Create `actions.ts` for mutations using `validatedActionWithUser()`
+3. For read-only data, call query functions directly in Server Components
+4. For mutations, create Server Actions that call API routes
 
 ### Adding a new database table
 
@@ -112,16 +188,28 @@ Use `ActivityType` enum ([lib/db/schema.ts:207](lib/db/schema.ts#L207)) for cons
 5. Add typed queries to [lib/db/queries.ts:1](lib/db/queries.ts#L1) or new query file
 6. Update seed script if needed
 
-### Server Action with validation
+### Data Flow Summary
 
-```typescript
-export const yourAction = validatedActionWithUser(
-  z.object({ field: z.string() }),
-  async (data, formData, user) => {
-    // Access validated data.field and user.id
-    return { success: 'Done' };
-  }
-);
+```
+User Form Submission
+  ↓
+Server Action (validates with Zod)
+  ↓
+API Route (receives validated data)
+  ↓
+Query Function in lib/db/queries.ts (executes SQL)
+  ↓
+Database
+```
+
+**Read operations (Server Components):**
+```
+Server Component → Query Function → Database
+```
+
+**Write operations (forms):**
+```
+Client Form → Server Action → API Route → Query Function → Database
 ```
 
 ## Environment Variables
