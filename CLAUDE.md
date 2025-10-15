@@ -228,13 +228,14 @@ All articles belong to a team and have access control based on team membership a
 
 #### Access Rules
 
-**Public articles (status: 'published'):**
-- Can be viewed by anyone (authenticated or not)
-- No team membership check required
+**Article listing (GET /api/articles):**
+- Requires authentication
+- Returns only articles belonging to user's team
+- Does not include public articles from other teams
 
-**Draft/private articles (status: 'draft' or other non-published statuses):**
-- Can only be accessed by team members
-- Requires team membership verification
+**Individual article viewing (GET /api/articles/[id]):**
+- Public articles (status: 'published'): Can be viewed by anyone (authenticated or not)
+- Draft/private articles (status: 'draft' or other non-published statuses): Can only be accessed by team members
 
 #### Operations and Required Permissions
 
@@ -286,10 +287,15 @@ if (!canAccess) {
 
 **For listing articles:**
 ```typescript
-// Query function: Filter by team or public status
+// API Route: List articles for authenticated users (team articles only)
+const user = await getUser();
+if (!user) {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+}
+
+const team = await getTeamForUser();
 const result = await getArticles({
-  teamId: user ? teamId : undefined,  // Filter by team for members
-  includePublicOnly: !user,           // Public only for unauthenticated users
+  teamId: team?.id,  // Filter by team only
   // ... other filters
 });
 ```

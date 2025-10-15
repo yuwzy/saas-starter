@@ -5,6 +5,7 @@ import type { Article, ArticleWithDetails, Category } from './schema';
 
 /**
  * 記事一覧を取得する（ページネーション付き）
+ * チームの記事のみを返す（認証必須）
  * @param options - フィルタとページネーションのオプション
  * @returns 記事一覧とメタ情報
  */
@@ -16,7 +17,6 @@ export async function getArticles(options: {
   userId?: number;
   categoryId?: number;
   search?: string;
-  includePublicOnly?: boolean;
 }) {
   const page = options.page || 1;
   const limit = options.limit || 10;
@@ -24,18 +24,13 @@ export async function getArticles(options: {
 
   const conditions = [];
 
-  // 公開記事のみの場合
-  if (options.includePublicOnly) {
-    conditions.push(eq(articles.status, 'published'));
-  } else {
-    // チームIDでフィルタ（下書き・非公開記事閲覧時）
-    if (options.teamId) {
-      conditions.push(eq(articles.teamId, options.teamId));
-    }
+  // チームIDでフィルタ（必須）
+  if (options.teamId) {
+    conditions.push(eq(articles.teamId, options.teamId));
+  }
 
-    if (options.status) {
-      conditions.push(eq(articles.status, options.status));
-    }
+  if (options.status) {
+    conditions.push(eq(articles.status, options.status));
   }
 
   if (options.userId) {
