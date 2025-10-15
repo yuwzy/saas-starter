@@ -1,0 +1,357 @@
+import { desc, eq, and, like, or, sql } from 'drizzle-orm';
+import { db } from './drizzle';
+import { articles, categories, articleTags, users, teamMembers } from './schema';
+import type { Article, ArticleWithDetails, Category } from './schema';
+
+/**
+ * 記事一覧を取得する（ページネーション付き）
+ * @param options - フィルタとページネーションのオプション
+ * @returns 記事一覧とメタ情報
+ */
+export async function getArticles(options: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  teamId?: number;
+  userId?: number;
+  categoryId?: number;
+  search?: string;
+  includePublicOnly?: boolean;
+}) {
+  const page = options.page || 1;
+  const limit = options.limit || 10;
+  const offset = (page - 1) * limit;
+
+  const conditions = [];
+
+  // 公開記事のみの場合
+  if (options.includePublicOnly) {
+    conditions.push(eq(articles.status, 'published'));
+  } else {
+    // チームIDでフィルタ（下書き・非公開記事閲覧時）
+    if (options.teamId) {
+      conditions.push(eq(articles.teamId, options.teamId));
+    }
+
+    if (options.status) {
+      conditions.push(eq(articles.status, options.status));
+    }
+  }
+
+  if (options.userId) {
+    conditions.push(eq(articles.userId, options.userId));
+  }
+
+  if (options.categoryId) {
+    conditions.push(eq(articles.categoryId, options.categoryId));
+  }
+
+  if (options.search) {
+    conditions.push(
+      or(
+        like(articles.title, `%${options.search}%`),
+        like(articles.content, `%${options.search}%`)
+      )
+    );
+  }
+
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const [articlesData, countResult] = await Promise.all([
+    db
+      .select({
+        id: articles.id,
+        teamId: articles.teamId,
+        userId: articles.userId,
+        title: articles.title,
+        slug: articles.slug,
+        content: articles.content,
+        excerpt: articles.excerpt,
+        categoryId: articles.categoryId,
+        status: articles.status,
+        publishedAt: articles.publishedAt,
+        createdAt: articles.createdAt,
+        updatedAt: articles.updatedAt,
+        authorName: users.name,
+        authorEmail: users.email,
+        categoryName: categories.name,
+        categorySlug: categories.slug,
+      })
+      .from(articles)
+      .leftJoin(users, eq(articles.userId, users.id))
+      .leftJoin(categories, eq(articles.categoryId, categories.id))
+      .where(whereClause)
+      .orderBy(desc(articles.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(articles)
+      .where(whereClause),
+  ]);
+
+  const totalCount = Number(countResult[0]?.count || 0);
+
+  return {
+    articles: articlesData,
+    pagination: {
+      page,
+      limit,
+      totalCount,
+      totalPages: Math.ceil(totalCount / limit),
+    },
+  };
+}
+
+/**
+ * スラッグで記事を取得する（チーム認可なし - 詳細ページで使用）
+ * @param slug - 記事のスラッグ
+ * @returns 記事詳細またはnull
+ */
+export async function getArticleBySlug(
+  slug: string
+): Promise<ArticleWithDetails | null> {
+  const result = await db.query.articles.findFirst({
+    where: eq(articles.slug, slug),
+    with: {
+      team: true,
+      author: {
+        columns: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      category: true,
+      tags: true,
+    },
+  });
+
+  return result || null;
+}
+
+/**
+ * IDで記事を取得する（チーム認可なし - 編集ページで使用）
+ * @param id - 記事のID
+ * @returns 記事詳細またはnull
+ */
+export async function getArticleById(
+  id: number
+): Promise<ArticleWithDetails | null> {
+  const result = await db.query.articles.findFirst({
+    where: eq(articles.id, id),
+    with: {
+      team: true,
+      author: {
+        columns: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      category: true,
+      tags: true,
+    },
+  });
+
+  return result || null;
+}
+
+/**
+ * 記事を作成する
+ * @param articleData - 記事データ
+ * @param tags - タグ配列
+ * @returns 作成された記事
+ */
+export async function createArticle(
+  articleData: {
+    teamId: number;
+    userId: number;
+    title: string;
+    slug: string;
+    content: string;
+    excerpt?: string;
+    categoryId?: number;
+    status?: string;
+    publishedAt?: Date;
+  },
+  tags: string[] = []
+): Promise<Article> {
+  const [newArticle] = await db
+    .insert(articles)
+    .values({
+      ...articleData,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .returning();
+
+  if (tags.length > 0) {
+    await db.insert(articleTags).values(
+      tags.map((tagName) => ({
+        articleId: newArticle.id,
+        tagName: tagName.trim(),
+        createdAt: new Date(),
+      }))
+    );
+  }
+
+  return newArticle;
+}
+
+/**
+ * 記事を更新する
+ * @param id - 記事のID
+ * @param articleData - 更新する記事データ
+ * @param tags - タグ配列（指定された場合は全て置き換え）
+ * @returns 更新された記事
+ */
+export async function updateArticle(
+  id: number,
+  articleData: Partial<{
+    title: string;
+    slug: string;
+    content: string;
+    excerpt: string;
+    categoryId: number;
+    status: string;
+    publishedAt: Date;
+  }>,
+  tags?: string[]
+): Promise<Article | null> {
+  const [updatedArticle] = await db
+    .update(articles)
+    .set({
+      ...articleData,
+      updatedAt: new Date(),
+    })
+    .where(eq(articles.id, id))
+    .returning();
+
+  if (tags !== undefined) {
+    await db.delete(articleTags).where(eq(articleTags.articleId, id));
+
+    if (tags.length > 0) {
+      await db.insert(articleTags).values(
+        tags.map((tagName) => ({
+          articleId: id,
+          tagName: tagName.trim(),
+          createdAt: new Date(),
+        }))
+      );
+    }
+  }
+
+  return updatedArticle || null;
+}
+
+/**
+ * 記事を削除する
+ * @param id - 記事のID
+ */
+export async function deleteArticle(id: number): Promise<void> {
+  await db.delete(articles).where(eq(articles.id, id));
+}
+
+/**
+ * 全てのカテゴリを取得する
+ * @returns カテゴリ一覧
+ */
+export async function getCategories(): Promise<Category[]> {
+  return await db.select().from(categories).orderBy(categories.name);
+}
+
+/**
+ * カテゴリを作成する
+ * @param categoryData - カテゴリデータ
+ * @returns 作成されたカテゴリ
+ */
+export async function createCategory(categoryData: {
+  name: string;
+  slug: string;
+}): Promise<Category> {
+  const [newCategory] = await db
+    .insert(categories)
+    .values({
+      ...categoryData,
+      createdAt: new Date(),
+    })
+    .returning();
+
+  return newCategory;
+}
+
+/**
+ * ユーザーが記事にアクセスできるかチェックする
+ * @param articleId - 記事のID
+ * @param userId - ユーザーのID
+ * @returns アクセス可能な場合true
+ */
+export async function canUserAccessArticle(
+  articleId: number,
+  userId: number
+): Promise<boolean> {
+  const article = await db
+    .select({ teamId: articles.teamId, status: articles.status })
+    .from(articles)
+    .where(eq(articles.id, articleId))
+    .limit(1);
+
+  if (article.length === 0) {
+    return false;
+  }
+
+  // 公開記事は誰でもアクセス可能
+  if (article[0].status === 'published') {
+    return true;
+  }
+
+  // 下書き・非公開記事はチームメンバーのみアクセス可能
+  const membership = await db
+    .select({ id: teamMembers.id })
+    .from(teamMembers)
+    .where(
+      and(
+        eq(teamMembers.teamId, article[0].teamId),
+        eq(teamMembers.userId, userId)
+      )
+    )
+    .limit(1);
+
+  return membership.length > 0;
+}
+
+/**
+ * ユーザーが記事を編集・削除できるかチェックする
+ * @param articleId - 記事のID
+ * @param userId - ユーザーのID
+ * @returns 編集可能な場合true
+ */
+export async function canUserModifyArticle(
+  articleId: number,
+  userId: number
+): Promise<boolean> {
+  const article = await db
+    .select({ teamId: articles.teamId })
+    .from(articles)
+    .where(eq(articles.id, articleId))
+    .limit(1);
+
+  if (article.length === 0) {
+    return false;
+  }
+
+  // 記事のチームに所属しているかチェック
+  const membership = await db
+    .select({ id: teamMembers.id })
+    .from(teamMembers)
+    .where(
+      and(
+        eq(teamMembers.teamId, article[0].teamId),
+        eq(teamMembers.userId, userId)
+      )
+    )
+    .limit(1);
+
+  return membership.length > 0;
+}
