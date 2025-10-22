@@ -1,6 +1,6 @@
 import { desc, eq, and, like, or, sql } from 'drizzle-orm';
 import { db } from './drizzle';
-import { articles, categories, articleTags, users, teamMembers } from './schema';
+import { articles, categories, articleTags, users } from './schema';
 import type { Article, ArticleWithDetails, Category } from './schema';
 
 /**
@@ -12,7 +12,6 @@ export async function getArticles(options: {
   page?: number;
   limit?: number;
   status?: string;
-  teamId?: number;
   userId?: number;
   categoryId?: number;
   search?: string;
@@ -28,11 +27,6 @@ export async function getArticles(options: {
   if (options.includePublicOnly) {
     conditions.push(eq(articles.status, 'published'));
   } else {
-    // チームIDでフィルタ（下書き・非公開記事閲覧時）
-    if (options.teamId) {
-      conditions.push(eq(articles.teamId, options.teamId));
-    }
-
     if (options.status) {
       conditions.push(eq(articles.status, options.status));
     }
@@ -61,7 +55,6 @@ export async function getArticles(options: {
     db
       .select({
         id: articles.id,
-        teamId: articles.teamId,
         userId: articles.userId,
         title: articles.title,
         slug: articles.slug,
@@ -114,7 +107,6 @@ export async function getArticleBySlug(
   const result = await db.query.articles.findFirst({
     where: eq(articles.slug, slug),
     with: {
-      team: true,
       author: {
         columns: {
           id: true,
@@ -141,7 +133,6 @@ export async function getArticleById(
   const result = await db.query.articles.findFirst({
     where: eq(articles.id, id),
     with: {
-      team: true,
       author: {
         columns: {
           id: true,
@@ -165,7 +156,6 @@ export async function getArticleById(
  */
 export async function createArticle(
   articleData: {
-    teamId: number;
     userId: number;
     title: string;
     slug: string;
@@ -292,7 +282,7 @@ export async function canUserAccessArticle(
   userId: number
 ): Promise<boolean> {
   const article = await db
-    .select({ teamId: articles.teamId, status: articles.status })
+    .select({ userId: articles.userId, status: articles.status })
     .from(articles)
     .where(eq(articles.id, articleId))
     .limit(1);
@@ -306,19 +296,8 @@ export async function canUserAccessArticle(
     return true;
   }
 
-  // 下書き・非公開記事はチームメンバーのみアクセス可能
-  const membership = await db
-    .select({ id: teamMembers.id })
-    .from(teamMembers)
-    .where(
-      and(
-        eq(teamMembers.teamId, article[0].teamId),
-        eq(teamMembers.userId, userId)
-      )
-    )
-    .limit(1);
-
-  return membership.length > 0;
+  // 下書き・非公開記事は作成者のみアクセス可能
+  return article[0].userId === userId;
 }
 
 /**
@@ -332,7 +311,7 @@ export async function canUserModifyArticle(
   userId: number
 ): Promise<boolean> {
   const article = await db
-    .select({ teamId: articles.teamId })
+    .select({ userId: articles.userId })
     .from(articles)
     .where(eq(articles.id, articleId))
     .limit(1);
@@ -341,17 +320,6 @@ export async function canUserModifyArticle(
     return false;
   }
 
-  // 記事のチームに所属しているかチェック
-  const membership = await db
-    .select({ id: teamMembers.id })
-    .from(teamMembers)
-    .where(
-      and(
-        eq(teamMembers.teamId, article[0].teamId),
-        eq(teamMembers.userId, userId)
-      )
-    )
-    .limit(1);
-
-  return membership.length > 0;
+  // 記事の作成者のみ編集可能
+  return article[0].userId === userId;
 }

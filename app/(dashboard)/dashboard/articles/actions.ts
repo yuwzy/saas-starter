@@ -72,7 +72,6 @@ export async function createArticleAction(
 
     const article = await createArticle(
       {
-        teamId: team.id,
         userId: user.id,
         title,
         slug,

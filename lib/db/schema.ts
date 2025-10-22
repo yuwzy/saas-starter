@@ -72,7 +72,6 @@ export const teamsRelations = relations(teams, ({ many }) => ({
   teamMembers: many(teamMembers),
   activityLogs: many(activityLogs),
   invitations: many(invitations),
-  articles: many(articles),
 }));
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -131,9 +130,6 @@ export type TeamDataWithMembers = Team & {
 
 export const articles = pgTable('articles', {
   id: serial('id').primaryKey(),
-  teamId: integer('team_id')
-    .notNull()
-    .references(() => teams.id),
   userId: integer('user_id')
     .notNull()
     .references(() => users.id),
@@ -165,10 +161,6 @@ export const articleTags = pgTable('article_tags', {
 });
 
 export const articlesRelations = relations(articles, ({ one, many }) => ({
-  team: one(teams, {
-    fields: [articles.teamId],
-    references: [teams.id],
-  }),
   author: one(users, {
     fields: [articles.userId],
     references: [users.id],

@@ -12,7 +12,6 @@ import { useRouter } from 'next/navigation';
 type ArticleListProps = {
   articles: Array<{
     id: number;
-    teamId: number;
     title: string;
     slug: string;
     status: string;
