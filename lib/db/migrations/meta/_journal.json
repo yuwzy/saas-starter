@@ -15,6 +15,13 @@
       "when": 1760471030712,
       "tag": "0001_aromatic_rattler",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1760513030056,
+      "tag": "0002_purple_otto_octavius",
+      "breakpoints": true
     }
   ]
 }

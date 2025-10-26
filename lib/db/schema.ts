@@ -130,6 +130,9 @@ export type TeamDataWithMembers = Team & {
 
 export const articles = pgTable('articles', {
   id: serial('id').primaryKey(),
+  teamId: integer('team_id')
+    .notNull()
+    .references(() => teams.id),
   userId: integer('user_id')
     .notNull()
     .references(() => users.id),
@@ -191,6 +194,7 @@ export type ArticleTag = typeof articleTags.$inferSelect;
 export type NewArticleTag = typeof articleTags.$inferInsert;
 
 export type ArticleWithDetails = Article & {
+  team: Team;
   author: Pick<User, 'id' | 'name' | 'email'>;
   category: Category | null;
   tags: ArticleTag[];

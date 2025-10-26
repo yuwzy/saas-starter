@@ -1,19 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { getUser, getTeamForUser } from '@/lib/db/queries';
-import {
-  createArticle,
-  updateArticle,
-  deleteArticle,
-  canUserModifyArticle,
-  getArticleById,
-} from '@/lib/db/articles-queries';
+import { cookies } from 'next/headers';
 import {
   createArticleSchema,
   updateArticleSchema,
 } from '@/lib/validations/article';
-import { ActivityType } from '@/lib/db/schema';
 import type { ActionState } from '@/lib/auth/middleware';
 
 /**
@@ -41,16 +33,6 @@ export async function createArticleAction(
   formData: FormData
 ): Promise<ActionState> {
   try {
-    const user = await getUser();
-    if (!user) {
-      return { error: '認証が必要です' };
-    }
-
-    const team = await getTeamForUser();
-    if (!team) {
-      return { error: 'チームが見つかりません' };
-    }
-
     const data = Object.fromEntries(formData);
     const result = createArticleSchema.safeParse(data);
 
@@ -58,31 +40,25 @@ export async function createArticleAction(
       return { error: result.error.errors[0].message };
     }
 
-    const { title, slug, content, excerpt, categoryId, status, tags, publishNow } =
-      result.data;
+    // Get cookies to pass to API route
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('session');
 
-    const tags_array = tags
-      ? tags
-          .split(',')
-          .map((tag) => tag.trim())
-          .filter((tag) => tag.length > 0)
-      : [];
-
-    const shouldPublish = status === 'published' || publishNow === 'true';
-
-    const article = await createArticle(
-      {
-        userId: user.id,
-        title,
-        slug,
-        content,
-        excerpt: excerpt || undefined,
-        categoryId: categoryId || undefined,
-        status: shouldPublish ? 'published' : status,
-        publishedAt: shouldPublish ? new Date() : undefined,
+    const response = await fetch(`${process.env.BASE_URL}/api/articles`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(sessionCookie ? { Cookie: `session=${sessionCookie.value}` } : {}),
       },
-      tags_array
-    );
+      body: JSON.stringify(result.data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || '記事の作成に失敗しました' };
+    }
+
+    const article = await response.json();
 
     revalidatePath('/dashboard/articles');
     return { success: '記事を作成しました', articleId: article.id };
@@ -107,16 +83,6 @@ export async function updateArticleAction(
   formData: FormData
 ): Promise<ActionState> {
   try {
-    const user = await getUser();
-    if (!user) {
-      return { error: '認証が必要です' };
-    }
-
-    const canModify = await canUserModifyArticle(id, user.id);
-    if (!canModify) {
-      return { error: 'この記事を編集する権限がありません' };
-    }
-
     const data = Object.fromEntries(formData);
     const result = updateArticleSchema.safeParse(data);
 
@@ -124,33 +90,23 @@ export async function updateArticleAction(
       return { error: result.error.errors[0].message };
     }
 
-    const { title, slug, content, excerpt, categoryId, status, tags, publishNow } =
-      result.data;
+    // Get cookies to pass to API route
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('session');
 
-    const tags_array = tags
-      ? tags
-          .split(',')
-          .map((tag) => tag.trim())
-          .filter((tag) => tag.length > 0)
-      : [];
-
-    const article = await getArticleById(id);
-    const shouldPublish =
-      (status === 'published' || publishNow === 'true') && !article?.publishedAt;
-
-    await updateArticle(
-      id,
-      {
-        title,
-        slug,
-        content,
-        excerpt: excerpt || undefined,
-        categoryId: categoryId || undefined,
-        status: shouldPublish ? 'published' : status,
-        publishedAt: shouldPublish ? new Date() : undefined,
+    const response = await fetch(`${process.env.BASE_URL}/api/articles/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(sessionCookie ? { Cookie: `session=${sessionCookie.value}` } : {}),
       },
-      tags_array
-    );
+      body: JSON.stringify(result.data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || '記事の更新に失敗しました' };
+    }
 
     revalidatePath('/dashboard/articles');
     revalidatePath(`/dashboard/articles/${id}/edit`);
@@ -170,17 +126,21 @@ export async function updateArticleAction(
  */
 export async function deleteArticleAction(id: number): Promise<ActionState> {
   try {
-    const user = await getUser();
-    if (!user) {
-      return { error: '認証が必要です' };
-    }
+    // Get cookies to pass to API route
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('session');
 
-    const canModify = await canUserModifyArticle(id, user.id);
-    if (!canModify) {
-      return { error: 'この記事を削除する権限がありません' };
-    }
+    const response = await fetch(`${process.env.BASE_URL}/api/articles/${id}`, {
+      method: 'DELETE',
+      headers: {
+        ...(sessionCookie ? { Cookie: `session=${sessionCookie.value}` } : {}),
+      },
+    });
 
-    await deleteArticle(id);
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || '記事の削除に失敗しました' };
+    }
 
     revalidatePath('/dashboard/articles');
     return { success: '記事を削除しました' };
