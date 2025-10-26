@@ -57,7 +57,6 @@ export default async function ArticlesPage({
   const { articles, pagination } = await getArticles({
     page,
     limit: 10,
-    teamId: team.id,
     status,
     search,
   });

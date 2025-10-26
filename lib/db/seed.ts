@@ -1,6 +1,6 @@
 import { stripe } from '../payments/stripe';
 import { db } from './drizzle';
-import { users, teams, teamMembers } from './schema';
+import { users, teams, teamMembers, categories } from './schema';
 import { hashPassword } from '@/lib/auth/session';
 
 async function createStripeProducts() {
@@ -69,6 +69,17 @@ async function seed() {
     userId: user.id,
     role: 'owner',
   });
+
+  // カテゴリの初期データを作成
+  await db.insert(categories).values([
+    { name: 'テクノロジー', slug: 'technology' },
+    { name: 'ビジネス', slug: 'business' },
+    { name: 'ライフスタイル', slug: 'lifestyle' },
+    { name: 'デザイン', slug: 'design' },
+    { name: 'マーケティング', slug: 'marketing' },
+  ]);
+
+  console.log('Categories created.');
 
   await createStripeProducts();
 }
