@@ -130,6 +130,9 @@ export type TeamDataWithMembers = Team & {
 
 export const articles = pgTable('articles', {
   id: serial('id').primaryKey(),
+  teamId: integer('team_id')
+    .notNull()
+    .references(() => teams.id),
   userId: integer('user_id')
     .notNull()
     .references(() => users.id),

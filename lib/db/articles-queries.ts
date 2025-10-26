@@ -163,6 +163,7 @@ export async function getArticleById(
  */
 export async function createArticle(
   articleData: {
+    teamId: number;
     userId: number;
     title: string;
     slug: string;

@@ -44,42 +44,67 @@ async function seed() {
   const password = 'admin123';
   const passwordHash = await hashPassword(password);
 
-  const [user] = await db
-    .insert(users)
-    .values([
-      {
-        email: email,
-        passwordHash: passwordHash,
-        role: "owner",
-      },
-    ])
-    .returning();
-
-  console.log('Initial user created.');
-
-  const [team] = await db
-    .insert(teams)
-    .values({
-      name: 'Test Team',
-    })
-    .returning();
-
-  await db.insert(teamMembers).values({
-    teamId: team.id,
-    userId: user.id,
-    role: 'owner',
+  // 既存のユーザーをチェック
+  let user = await db.query.users.findFirst({
+    where: (users, { eq }) => eq(users.email, email),
   });
 
-  // カテゴリの初期データを作成
-  await db.insert(categories).values([
-    { name: 'テクノロジー', slug: 'technology' },
-    { name: 'ビジネス', slug: 'business' },
-    { name: 'ライフスタイル', slug: 'lifestyle' },
-    { name: 'デザイン', slug: 'design' },
-    { name: 'マーケティング', slug: 'marketing' },
-  ]);
+  if (!user) {
+    const [newUser] = await db
+      .insert(users)
+      .values([
+        {
+          email: email,
+          passwordHash: passwordHash,
+          role: "owner",
+        },
+      ])
+      .returning();
+    user = newUser;
+    console.log('Initial user created.');
+  } else {
+    console.log('User already exists.');
+  }
 
-  console.log('Categories created.');
+  // 既存のチームをチェック
+  let team = await db.query.teams.findFirst({
+    where: (teams, { eq }) => eq(teams.name, 'Test Team'),
+  });
+
+  if (!team) {
+    const [newTeam] = await db
+      .insert(teams)
+      .values({
+        name: 'Test Team',
+      })
+      .returning();
+    team = newTeam;
+
+    await db.insert(teamMembers).values({
+      teamId: team.id,
+      userId: user.id,
+      role: 'owner',
+    });
+    console.log('Team created.');
+  } else {
+    console.log('Team already exists.');
+  }
+
+  // 既存のカテゴリをチェック
+  const existingCategories = await db.query.categories.findMany();
+  
+  if (existingCategories.length === 0) {
+    await db.insert(categories).values([
+      { name: 'テクノロジー', slug: 'technology' },
+      { name: 'ビジネス', slug: 'business' },
+      { name: 'ライフスタイル', slug: 'lifestyle' },
+      { name: 'デザイン', slug: 'design' },
+      { name: 'マーケティング', slug: 'marketing' },
+    ]);
+    console.log('Categories created.');
+  } else {
+    console.log('Categories already exist.');
+  }
 
   await createStripeProducts();
 }
