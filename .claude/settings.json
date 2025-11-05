@@ -1,5 +1,16 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cmd=$(jq -r '.tool_input.command'); echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Checking command: $cmd\" >> .claude/logs/hooks.log; if echo \"$cmd\" | grep -qE '(rm\\s+-rf\\s+/|rm\\s+-rf\\s+\\*|cat\\s+\\.env)'; then echo \"[$(date '+%Y-%m-%d %H:%M:%S')] BLOCKED: Dangerous command detected: $cmd\" >> .claude/logs/hooks.log; echo \"ERROR: Dangerous command blocked - This operation could cause irreversible damage.\" >&2; exit 1; fi"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Write|Edit",
