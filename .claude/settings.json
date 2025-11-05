@@ -1,0 +1,19 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | { read file_path; echo \"[$(date '+%Y-%m-%d %H:%M:%S')] ESLint: $file_path\" >> .claude/logs/hooks.log; pnpm eslint --fix \"$file_path\" 2>&1 >> .claude/logs/hooks.log; }"
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | { read file_path; echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Prettier: $file_path\" >> .claude/logs/hooks.log; pnpm prettier --write \"$file_path\" 2>&1 >> .claude/logs/hooks.log; }"
+          }
+        ]
+      }
+    ]
+  }
+}
