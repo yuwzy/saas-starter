@@ -74,6 +74,38 @@ You can listen for Stripe webhooks locally through their CLI to handle subscript
 stripe listen --forward-to localhost:3000/api/stripe/webhook
 ```
 
+## Code Quality
+
+This project includes ESLint and Prettier for code quality and formatting.
+
+### Linting
+
+Run the linter to check for code issues:
+
+```bash
+pnpm lint
+```
+
+Automatically fix linting issues where possible:
+
+```bash
+pnpm lint:fix
+```
+
+### Formatting
+
+Format all files with Prettier:
+
+```bash
+pnpm format
+```
+
+Check if files are formatted correctly (useful for CI/CD):
+
+```bash
+pnpm format:check
+```
+
 ## Testing Payments
 
 To test Stripe payments, use the following test card details:

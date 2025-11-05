@@ -1,0 +1,32 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Testing
+coverage
+
+# Next.js
+.next
+out
+build
+dist
+
+# Production
+*.tsbuildinfo
+
+# Misc
+.DS_Store
+
+# Local env files
+.env*.local
+
+# Vercel
+.vercel
+
+# TypeScript
+next-env.d.ts
+
+# Database migrations (generated files)
+lib/db/migrations/*.sql
+

@@ -92,12 +92,11 @@ export default function SecurityPage() {
               <p className="text-destructive text-sm">{passwordState.error}</p>
             )}
             {passwordState.success && (
-              <p className="text-accent-foreground text-sm">{passwordState.success}</p>
+              <p className="text-accent-foreground text-sm">
+                {passwordState.success}
+              </p>
             )}
-            <Button
-              type="submit"
-              disabled={isPasswordPending}
-            >
+            <Button type="submit" disabled={isPasswordPending}>
               {isPasswordPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -56,7 +56,7 @@ async function seed() {
         {
           email: email,
           passwordHash: passwordHash,
-          role: "owner",
+          role: 'owner',
         },
       ])
       .returning();
@@ -92,7 +92,7 @@ async function seed() {
 
   // 既存のカテゴリをチェック
   const existingCategories = await db.query.categories.findMany();
-  
+
   if (existingCategories.length === 0) {
     await db.insert(categories).values([
       { name: 'テクノロジー', slug: 'technology' },

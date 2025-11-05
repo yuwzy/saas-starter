@@ -30,7 +30,10 @@ export function ArticleForm({ article, categories }: ArticleFormProps) {
   const router = useRouter();
   const isEditMode = !!article;
 
-  const [formState, formAction, isPending] = useActionState<ActionState, FormData>(
+  const [formState, formAction, isPending] = useActionState<
+    ActionState,
+    FormData
+  >(
     isEditMode
       ? updateArticleAction.bind(null, article.id)
       : createArticleAction,
@@ -81,7 +84,9 @@ export function ArticleForm({ article, categories }: ArticleFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{isEditMode ? '記事情報の編集' : '記事情報の入力'}</CardTitle>
+        <CardTitle>
+          {isEditMode ? '記事情報の編集' : '記事情報の入力'}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-6">
@@ -276,12 +281,12 @@ export function ArticleForm({ article, categories }: ArticleFormProps) {
             </Button>
 
             {isEditMode && article.status === 'published' && (
-              <Button
-                variant="outline"
-                asChild
-                className="ml-auto"
-              >
-                <a href={`/articles/${article.slug}`} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" asChild className="ml-auto">
+                <a
+                  href={`/articles/${article.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <Eye className="mr-2 h-4 w-4" />
                   プレビュー
                 </a>

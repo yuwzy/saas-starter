@@ -35,6 +35,7 @@ stripe listen --forward-to localhost:3000/api/stripe/webhook
 ## Architecture Principles
 
 ### API-First Design
+
 - **All data mutations MUST go through API routes** (`app/api/*`)
 - Server Actions should ONLY handle:
   - Form validation and submission
@@ -44,6 +45,7 @@ stripe listen --forward-to localhost:3000/api/stripe/webhook
 - API routes return standardized JSON responses with proper HTTP status codes
 
 ### Data Access Layer
+
 - **All SQL queries MUST be abstracted in** `lib/db/queries.ts` or domain-specific query files (`lib/db/*-queries.ts`)
 - **Never write raw SQL or direct `db.*` calls in:**
   - API routes (`app/api/*`)
@@ -53,6 +55,7 @@ stripe listen --forward-to localhost:3000/api/stripe/webhook
 - Use Drizzle's relational query syntax (`db.query.*`) over raw selects when fetching nested data
 
 ### Type Safety
+
 - **Always use inferred types from Drizzle schema** (e.g., `User`, `NewUser`, `Article`)
 - **Avoid `any` types** - use `unknown` and type guards if needed
 - Use generics for reusable utility functions
@@ -103,6 +106,7 @@ stripe listen --forward-to localhost:3000/api/stripe/webhook
 ### Server Actions Pattern
 
 Server Actions live in `actions.ts` files alongside routes, but must follow API-first principles:
+
 - **Form actions**: Use `validatedActionWithUser()` wrapper for Zod validation
 - **Data flow**: Action validates → calls API route → returns response to client
 - **Return format**: `{ error?: string, success?: string }` for form state
@@ -146,18 +150,22 @@ Use `ActivityType` enum ([lib/db/schema.ts:207](lib/db/schema.ts#L207)) for cons
 1. **Define schema types** in [lib/db/schema.ts:1](lib/db/schema.ts#L1) and run `pnpm db:generate && pnpm db:migrate`
 2. **Create query functions** in `lib/db/queries.ts` or `lib/db/[feature]-queries.ts`:
    ```typescript
-   export async function getArticles(teamId: number): Promise<ArticleWithDetails[]> {
+   export async function getArticles(
+     teamId: number
+   ): Promise<ArticleWithDetails[]> {
      return await db.query.articles.findMany({
        where: eq(articles.teamId, teamId),
-       with: { author: true, category: true, tags: true }
+       with: { author: true, category: true, tags: true },
      });
    }
    ```
 3. **Create API route** in `app/api/[feature]/route.ts`:
+
    ```typescript
    export async function POST(request: Request) {
      const user = await getUser();
-     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+     if (!user)
+       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
      const body = await request.json();
      const validated = schema.safeParse(body);
@@ -169,6 +177,7 @@ Use `ActivityType` enum ([lib/db/schema.ts:207](lib/db/schema.ts#L207)) for cons
      return NextResponse.json(result, { status: 201 });
    }
    ```
+
 4. **Create Server Action** in `actions.ts` that calls the API route
 5. **Create UI page** in `app/(dashboard)/dashboard/[feature]/page.tsx` using `getUser()` for read operations
 
@@ -203,11 +212,13 @@ Database
 ```
 
 **Read operations (Server Components):**
+
 ```
 Server Component → Query Function → Database
 ```
 
 **Write operations (forms):**
+
 ```
 Client Form → Server Action → API Route → Query Function → Database
 ```
@@ -215,6 +226,7 @@ Client Form → Server Action → API Route → Query Function → Database
 ## Environment Variables
 
 See `.env.example`. Required:
+
 - `AUTH_SECRET`: Generate with `openssl rand -base64 32`
 - `POSTGRES_URL`: Database connection string
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`: From Stripe dashboard
@@ -229,27 +241,30 @@ All articles belong to a team and have access control based on team membership a
 #### Access Rules
 
 **Article listing (GET /api/articles):**
+
 - Requires authentication
 - Returns only articles belonging to user's team
 - Does not include public articles from other teams
 
 **Individual article viewing (GET /api/articles/[id]):**
+
 - Public articles (status: 'published'): Can be viewed by anyone (authenticated or not)
 - Draft/private articles (status: 'draft' or other non-published statuses): Can only be accessed by team members
 
 #### Operations and Required Permissions
 
-| Operation | Requirement | Check Function |
-|-----------|------------|----------------|
-| Create article | Team membership | User must be member of target team |
-| Update article | Team membership | `canUserModifyArticle()` |
-| Delete article | Team membership | `canUserModifyArticle()` |
-| View draft/private article | Team membership | `canUserAccessArticle()` |
-| View published article | None | Public access |
+| Operation                  | Requirement     | Check Function                     |
+| -------------------------- | --------------- | ---------------------------------- |
+| Create article             | Team membership | User must be member of target team |
+| Update article             | Team membership | `canUserModifyArticle()`           |
+| Delete article             | Team membership | `canUserModifyArticle()`           |
+| View draft/private article | Team membership | `canUserAccessArticle()`           |
+| View published article     | None            | Public access                      |
 
 #### Implementation Pattern
 
 **For mutations (create/update/delete):**
+
 ```typescript
 // API Route: Check team membership before modification
 const user = await getUser();
@@ -264,6 +279,7 @@ if (!canModify) {
 ```
 
 **For viewing non-public articles:**
+
 ```typescript
 // API Route: Check access for draft/private articles
 const user = await getUser();
@@ -286,6 +302,7 @@ if (!canAccess) {
 ```
 
 **For listing articles:**
+
 ```typescript
 // API Route: List articles for authenticated users (team articles only)
 const user = await getUser();
@@ -295,7 +312,7 @@ if (!user) {
 
 const team = await getTeamForUser();
 const result = await getArticles({
-  teamId: team?.id,  // Filter by team only
+  teamId: team?.id, // Filter by team only
   // ... other filters
 });
 ```
@@ -311,6 +328,7 @@ Located in [lib/db/articles-queries.ts](lib/db/articles-queries.ts):
 #### Schema Fields
 
 All articles have these required fields for authorization ([lib/db/schema.ts:132](lib/db/schema.ts#L132)):
+
 - `teamId`: Links article to owning team (required, foreign key)
 - `userId`: Links article to author (required, foreign key)
 - `status`: Publication status ('draft', 'published', etc.)
@@ -320,11 +338,13 @@ All articles have these required fields for authorization ([lib/db/schema.ts:132
 ### Component Library Standards
 
 **Use shadcn/ui as the foundation:**
+
 - All UI components should leverage shadcn/ui primitives (based on Radix UI)
 - Existing shadcn/ui components are located in [components/ui/](components/ui/) (button, input, badge, card, etc.)
 - Install new shadcn/ui components via `pnpm dlx shadcn@latest add <component-name>` when needed
 
 **Component organization:**
+
 - **`/components/ui/*`**: shadcn/ui components and reusable primitive components
 - **`/components/*`**: Business logic components and feature-specific compositions
 - Keep components in the route directory (e.g., `app/(dashboard)/dashboard/articles/article-list.tsx`) when they are specific to a single page/route
@@ -332,6 +352,7 @@ All articles have these required fields for authorization ([lib/db/schema.ts:132
 ### Styling and Design System
 
 **Follow the established color scheme:**
+
 - The project uses a complete design token system defined in [app/globals.css](app/globals.css)
 - **Primary brand color is orange** (`orange-500`/`orange-600` in Tailwind, or `primary` token in the design system)
 - **ALWAYS use semantic color tokens** instead of arbitrary colors:
@@ -346,8 +367,9 @@ All articles have these required fields for authorization ([lib/db/schema.ts:132
 - Reference color tokens in `globals.css:85-227` for the complete palette
 
 **Tailwind utility usage:**
+
 - Use Tailwind utility classes exclusively (no CSS modules or inline styles)
-- Follow the existing patterns in [components/ui/button.tsx](components/ui/button.tsx) and [app/(dashboard)/dashboard/articles/article-list.tsx](app/(dashboard)/dashboard/articles/article-list.tsx)
+- Follow the existing patterns in [components/ui/button.tsx](components/ui/button.tsx) and [app/(dashboard)/dashboard/articles/article-list.tsx](<app/(dashboard)/dashboard/articles/article-list.tsx>)
 - Border radius: Use `rounded-md`, `rounded-lg` (respects `--radius` CSS variable)
 - Spacing: Use consistent spacing scale (`gap-2`, `gap-4`, `space-y-4`, etc.)
 - Transitions: Add `transition-colors` or `transition-all` for interactive states
@@ -355,6 +377,7 @@ All articles have these required fields for authorization ([lib/db/schema.ts:132
 ### Component Patterns
 
 **Preferred structure for custom components:**
+
 ```typescript
 'use client'; // Only if client interactivity is needed
 
@@ -381,6 +404,7 @@ export function ComponentName({
 ```
 
 **Key principles:**
+
 - Export named functions (not default exports)
 - Use TypeScript interfaces for props
 - Leverage `cn()` utility from `@/lib/utils` for className merging
@@ -388,7 +412,8 @@ export function ComponentName({
 - Follow Server Component patterns unless client interactivity is required
 
 **Examples of good patterns:**
-- Status badges: [article-list.tsx:37](app/(dashboard)/dashboard/articles/article-list.tsx#L37) - small, reusable, co-located
+
+- Status badges: [article-list.tsx:37](<app/(dashboard)/dashboard/articles/article-list.tsx#L37>) - small, reusable, co-located
 - Form components: Use shadcn/ui `<Input>`, `<Label>`, `<Button>` with consistent styling
 - Interactive lists: Use semantic color tokens for hover states and borders
 
@@ -428,18 +453,18 @@ interface Props extends VariantProps<typeof componentVariants> {
 
 All color tokens support light/dark modes automatically. Key tokens:
 
-| Token | Usage | Example |
-|-------|-------|---------|
-| `foreground` | Primary text color | Main headings, body text |
-| `muted-foreground` | Secondary/helper text | Descriptions, labels |
-| `background` | Page background | Main page container |
-| `card` / `card-foreground` | Card containers | Content cards, panels |
-| `border` / `input` | Border colors (same value) | Form inputs, dividers |
-| `primary` / `primary-foreground` | **Primary actions/CTAs (Orange)** | Submit buttons, "New" buttons, active filters |
-| `destructive` / `destructive-foreground` | Delete/error actions | Delete buttons, error messages |
-| `accent` / `accent-foreground` | Hover/focus states, success messages | Hover backgrounds, success alerts |
-| `secondary` / `secondary-foreground` | Secondary actions | Badge backgrounds, secondary buttons |
-| `ring` | Focus ring color (Orange) | Focus outlines on interactive elements |
+| Token                                    | Usage                                | Example                                       |
+| ---------------------------------------- | ------------------------------------ | --------------------------------------------- |
+| `foreground`                             | Primary text color                   | Main headings, body text                      |
+| `muted-foreground`                       | Secondary/helper text                | Descriptions, labels                          |
+| `background`                             | Page background                      | Main page container                           |
+| `card` / `card-foreground`               | Card containers                      | Content cards, panels                         |
+| `border` / `input`                       | Border colors (same value)           | Form inputs, dividers                         |
+| `primary` / `primary-foreground`         | **Primary actions/CTAs (Orange)**    | Submit buttons, "New" buttons, active filters |
+| `destructive` / `destructive-foreground` | Delete/error actions                 | Delete buttons, error messages                |
+| `accent` / `accent-foreground`           | Hover/focus states, success messages | Hover backgrounds, success alerts             |
+| `secondary` / `secondary-foreground`     | Secondary actions                    | Badge backgrounds, secondary buttons          |
+| `ring`                                   | Focus ring color (Orange)            | Focus outlines on interactive elements        |
 
 Use these tokens via Tailwind classes: `bg-{token}`, `text-{token}`, `border-{token}`.
 

@@ -1,5 +1,8 @@
 import { notFound } from 'next/navigation';
-import { getArticleBySlug, canUserAccessArticle } from '@/lib/db/articles-queries';
+import {
+  getArticleBySlug,
+  canUserAccessArticle,
+} from '@/lib/db/articles-queries';
 import { getUser } from '@/lib/db/queries';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -94,7 +97,9 @@ export default async function ArticlePage({ params }: Props) {
         </h1>
 
         {article.excerpt && (
-          <p className="text-lg text-muted-foreground mb-6">{article.excerpt}</p>
+          <p className="text-lg text-muted-foreground mb-6">
+            {article.excerpt}
+          </p>
         )}
 
         {/* メタ情報 */}

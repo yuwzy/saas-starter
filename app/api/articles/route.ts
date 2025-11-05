@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(result);
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: '記事の取得に失敗しました' },
       { status: 500 }
@@ -87,8 +87,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, slug, content, excerpt, categoryId, status, tags, publishNow } =
-      result.data;
+    const {
+      title,
+      slug,
+      content,
+      excerpt,
+      categoryId,
+      status,
+      tags,
+      publishNow,
+    } = result.data;
 
     const tags_array = tags
       ? tags
@@ -115,7 +123,7 @@ export async function POST(request: NextRequest) {
     );
 
     return NextResponse.json(article, { status: 201 });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: '記事の作成に失敗しました' },
       { status: 500 }
