@@ -1,6 +1,10 @@
 import { redirect, notFound } from 'next/navigation';
 import { getUser } from '@/lib/db/queries';
-import { getArticleById, getCategories, canUserModifyArticle } from '@/lib/db/articles-queries';
+import {
+  getArticleById,
+  getCategories,
+  canUserModifyArticle,
+} from '@/lib/db/articles-queries';
 import { ArticleForm } from '../../article-form';
 
 /**

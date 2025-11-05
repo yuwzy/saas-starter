@@ -28,7 +28,7 @@ type AccountFormProps = {
 function AccountForm({
   state,
   nameValue = '',
-  emailValue = ''
+  emailValue = '',
 }: AccountFormProps) {
   return (
     <>
@@ -99,10 +99,7 @@ export default function GeneralPage() {
             {state.success && (
               <p className="text-accent-foreground text-sm">{state.success}</p>
             )}
-            <Button
-              type="submit"
-              disabled={isPending}
-            >
+            <Button type="submit" disabled={isPending}>
               {isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

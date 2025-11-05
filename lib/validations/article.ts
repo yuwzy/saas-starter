@@ -17,11 +17,19 @@ export const createArticleSchema = z.object({
       'スラッグは小文字英数字とハイフンのみ使用できます'
     ),
   content: z.string().min(1, '本文は必須です'),
-  excerpt: z.string().max(1000, '抜粋は1000文字以内で入力してください').optional(),
-  categoryId: z.coerce.number().positive('カテゴリを選択してください').optional(),
-  status: z.enum(['draft', 'published', 'unpublished'], {
-    errorMap: () => ({ message: 'ステータスが不正です' }),
-  }).default('draft'),
+  excerpt: z
+    .string()
+    .max(1000, '抜粋は1000文字以内で入力してください')
+    .optional(),
+  categoryId: z.coerce
+    .number()
+    .positive('カテゴリを選択してください')
+    .optional(),
+  status: z
+    .enum(['draft', 'published', 'unpublished'], {
+      errorMap: () => ({ message: 'ステータスが不正です' }),
+    })
+    .default('draft'),
   tags: z.string().optional(),
   publishNow: z.string().optional(),
 });
@@ -43,8 +51,14 @@ export const updateArticleSchema = z.object({
       'スラッグは小文字英数字とハイフンのみ使用できます'
     ),
   content: z.string().min(1, '本文は必須です'),
-  excerpt: z.string().max(1000, '抜粋は1000文字以内で入力してください').optional(),
-  categoryId: z.coerce.number().positive('カテゴリを選択してください').optional(),
+  excerpt: z
+    .string()
+    .max(1000, '抜粋は1000文字以内で入力してください')
+    .optional(),
+  categoryId: z.coerce
+    .number()
+    .positive('カテゴリを選択してください')
+    .optional(),
   status: z.enum(['draft', 'published', 'unpublished'], {
     errorMap: () => ({ message: 'ステータスが不正です' }),
   }),

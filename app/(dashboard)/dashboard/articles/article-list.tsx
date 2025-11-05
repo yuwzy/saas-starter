@@ -47,7 +47,9 @@ function StatusBadge({ status }: { status: string }) {
   };
 
   return (
-    <Badge variant={variants[status] || 'default'}>{labels[status] || status}</Badge>
+    <Badge variant={variants[status] || 'default'}>
+      {labels[status] || status}
+    </Badge>
   );
 }
 
@@ -80,7 +82,7 @@ export function ArticleList({
       } else {
         router.refresh();
       }
-    } catch (error) {
+    } catch (_error) {
       alert('記事の削除に失敗しました');
     } finally {
       setIsDeleting(null);
@@ -127,7 +129,9 @@ export function ArticleList({
         </form>
         <div className="flex gap-2">
           <Button
-            variant={!currentStatus || currentStatus === 'all' ? 'default' : 'outline'}
+            variant={
+              !currentStatus || currentStatus === 'all' ? 'default' : 'outline'
+            }
             size="sm"
             onClick={() => handleStatusFilter('all')}
           >
@@ -176,9 +180,16 @@ export function ArticleList({
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  作成日: {new Date(article.createdAt).toLocaleDateString('ja-JP')}
+                  作成日:{' '}
+                  {new Date(article.createdAt).toLocaleDateString('ja-JP')}
                   {article.publishedAt && (
-                    <> | 公開日: {new Date(article.publishedAt).toLocaleDateString('ja-JP')}</>
+                    <>
+                      {' '}
+                      | 公開日:{' '}
+                      {new Date(article.publishedAt).toLocaleDateString(
+                        'ja-JP'
+                      )}
+                    </>
                   )}
                 </p>
               </div>
@@ -224,8 +235,13 @@ export function ArticleList({
       {pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4 border-t border-border">
           <p className="text-sm text-muted-foreground">
-            {pagination.totalCount}件中 {(pagination.page - 1) * pagination.limit + 1}-
-            {Math.min(pagination.page * pagination.limit, pagination.totalCount)}件を表示
+            {pagination.totalCount}件中{' '}
+            {(pagination.page - 1) * pagination.limit + 1}-
+            {Math.min(
+              pagination.page * pagination.limit,
+              pagination.totalCount
+            )}
+            件を表示
           </p>
           <div className="flex gap-2">
             <Button

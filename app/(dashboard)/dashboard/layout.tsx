@@ -4,10 +4,17 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Users, Settings, Shield, Activity, Menu, FileText } from 'lucide-react';
+import {
+  Users,
+  Settings,
+  Shield,
+  Activity,
+  Menu,
+  FileText,
+} from 'lucide-react';
 
 export default function DashboardLayout({
-  children
+  children,
 }: {
   children: React.ReactNode;
 }) {
@@ -19,7 +26,7 @@ export default function DashboardLayout({
     { href: '/dashboard/general', icon: Settings, label: 'General' },
     { href: '/dashboard/activity', icon: Activity, label: 'Activity' },
     { href: '/dashboard/security', icon: Shield, label: 'Security' },
-    { href: '/dashboard/articles', icon: FileText, label: 'Articles' }
+    { href: '/dashboard/articles', icon: FileText, label: 'Articles' },
   ];
 
   return (
@@ -52,7 +59,12 @@ export default function DashboardLayout({
             {navItems.map((item) => (
               <Link key={item.href} href={item.href} passHref>
                 <Button
-                  variant={pathname === item.href || pathname.startsWith(item.href + '/') ? 'secondary' : 'ghost'}
+                  variant={
+                    pathname === item.href ||
+                    pathname.startsWith(item.href + '/')
+                      ? 'secondary'
+                      : 'ghost'
+                  }
                   className="shadow-none my-1 w-full justify-start"
                   onClick={() => setIsSidebarOpen(false)}
                 >

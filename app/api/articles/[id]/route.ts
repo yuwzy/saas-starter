@@ -25,10 +25,7 @@ export async function GET(
     const articleId = parseInt(id, 10);
 
     if (isNaN(articleId)) {
-      return NextResponse.json(
-        { error: '不正な記事IDです' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '不正な記事IDです' }, { status: 400 });
     }
 
     const article = await getArticleById(articleId);
@@ -48,10 +45,7 @@ export async function GET(
     // 下書き・非公開記事はチームメンバーのみアクセス可能
     const user = await getUser();
     if (!user) {
-      return NextResponse.json(
-        { error: '認証が必要です' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
     }
 
     const canAccess = await canUserAccessArticle(articleId, user.id);
@@ -63,7 +57,7 @@ export async function GET(
     }
 
     return NextResponse.json(article);
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: '記事の取得に失敗しました' },
       { status: 500 }
@@ -92,10 +86,7 @@ export async function PUT(
     const articleId = parseInt(id, 10);
 
     if (isNaN(articleId)) {
-      return NextResponse.json(
-        { error: '不正な記事IDです' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '不正な記事IDです' }, { status: 400 });
     }
 
     const canModify = await canUserModifyArticle(articleId, user.id);
@@ -116,8 +107,16 @@ export async function PUT(
       );
     }
 
-    const { title, slug, content, excerpt, categoryId, status, tags, publishNow } =
-      result.data;
+    const {
+      title,
+      slug,
+      content,
+      excerpt,
+      categoryId,
+      status,
+      tags,
+      publishNow,
+    } = result.data;
 
     const tags_array = tags
       ? tags
@@ -128,7 +127,8 @@ export async function PUT(
 
     const article = await getArticleById(articleId);
     const shouldPublish =
-      (status === 'published' || publishNow === 'true') && !article?.publishedAt;
+      (status === 'published' || publishNow === 'true') &&
+      !article?.publishedAt;
 
     const updatedArticle = await updateArticle(
       articleId,
@@ -145,7 +145,7 @@ export async function PUT(
     );
 
     return NextResponse.json(updatedArticle);
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: '記事の更新に失敗しました' },
       { status: 500 }
@@ -174,10 +174,7 @@ export async function DELETE(
     const articleId = parseInt(id, 10);
 
     if (isNaN(articleId)) {
-      return NextResponse.json(
-        { error: '不正な記事IDです' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '不正な記事IDです' }, { status: 400 });
     }
 
     const canModify = await canUserModifyArticle(articleId, user.id);
@@ -191,7 +188,7 @@ export async function DELETE(
     await deleteArticle(articleId);
 
     return NextResponse.json({ success: '記事を削除しました' });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: '記事の削除に失敗しました' },
       { status: 500 }
