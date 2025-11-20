@@ -1,0 +1,42 @@
+name: Issue Auto Triage
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+  contents: read
+  id-token: write
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Triage issue
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            .claude/commands/triage-issue.mdの内容に従って、このIssueをトリアージしてください。
+
+            Issue情報:
+            - タイトル: ${{ github.event.issue.title }}
+            - 本文: ${{ github.event.issue.body }}
+            - 作成者: ${{ github.event.issue.user.login }}
+            - Issue番号: #${{ github.event.issue.number }}
+
+            以下の形式でラベルを付与してください:
+            1. タイプラベル（bug, enhancement, documentation, question のいずれか）
+            2. 優先度ラベル（priority/critical, priority/high, priority/medium, priority/low のいずれか）
+            3. 領域ラベル（該当するもの: area/frontend, area/backend, area/database, area/auth, area/payments, area/teams, area/articles）
+            4. その他のラベル（good-first-issue, security, performance など、該当する場合）
+
+            ラベルが存在しない場合は、コメントで推奨ラベルを提案してください。
+
+            `gh issue edit`コマンドを使用してラベルを付与し、必要に応じて`gh issue comment`コマンドでコメントを追加してください。
+          claude_args: '--allowed-tools "Bash(gh issue:*),Bash(gh label:*)"'
+
