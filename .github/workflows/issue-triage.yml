@@ -39,4 +39,3 @@ jobs:
 
             `gh issue edit`コマンドを使用してラベルを付与し、必要に応じて`gh issue comment`コマンドでコメントを追加してください。
           claude_args: '--allowed-tools "Bash(gh issue:*),Bash(gh label:*)"'
-

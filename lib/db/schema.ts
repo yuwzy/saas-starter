@@ -74,7 +74,6 @@ export const teamsRelations = relations(teams, ({ many }) => ({
   invitations: many(invitations),
 }));
 
-
 export const invitationsRelations = relations(invitations, ({ one }) => ({
   team: one(teams, {
     fields: [invitations.teamId],
@@ -159,7 +158,6 @@ export const articleTags = pgTable('article_tags', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-
 export const categoriesRelations = relations(categories, ({ many }) => ({
   articles: many(articles),
 }));
@@ -184,16 +182,19 @@ export const articleComments = pgTable('article_comments', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-export const articleCommentsRelations = relations(articleComments, ({ one }) => ({
-  article: one(articles, {
-    fields: [articleComments.articleId],
-    references: [articles.id],
-  }),
-  user: one(users, {
-    fields: [articleComments.userId],
-    references: [users.id],
-  }),
-}));
+export const articleCommentsRelations = relations(
+  articleComments,
+  ({ one }) => ({
+    article: one(articles, {
+      fields: [articleComments.articleId],
+      references: [articles.id],
+    }),
+    user: one(users, {
+      fields: [articleComments.userId],
+      references: [users.id],
+    }),
+  })
+);
 
 export const articlesRelations = relations(articles, ({ one, many }) => ({
   author: one(users, {
