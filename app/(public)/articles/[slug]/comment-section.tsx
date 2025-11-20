@@ -30,7 +30,6 @@ interface CommentSectionProps {
   } | null;
 }
 
-
 async function deleteComment(
   articleId: number,
   commentId: number
@@ -44,7 +43,7 @@ async function deleteComment(
     );
 
     return response.ok;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 }
@@ -120,7 +119,7 @@ export function CommentSection({
       await loadComments();
       // フォームをリセット
       e.currentTarget.reset();
-    } catch (error) {
+    } catch (_error) {
       setError('コメントの投稿に失敗しました');
     } finally {
       setSubmitting(false);
@@ -151,11 +150,7 @@ export function CommentSection({
         </CardHeader>
         <CardContent className="space-y-6">
           {/* コメント投稿フォーム */}
-          <form
-            id="comment-form"
-            onSubmit={handleSubmit}
-            className="space-y-4"
-          >
+          <form id="comment-form" onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="content">コメント</Label>
               <Textarea
@@ -190,9 +185,7 @@ export function CommentSection({
                 </div>
               </div>
             )}
-            {error && (
-              <div className="text-sm text-destructive">{error}</div>
-            )}
+            {error && <div className="text-sm text-destructive">{error}</div>}
             {success && (
               <div className="text-sm text-green-600 dark:text-green-400">
                 {success}
@@ -241,13 +234,16 @@ export function CommentSection({
                             {authorName}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {new Date(comment.createdAt).toLocaleString('ja-JP', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                            {new Date(comment.createdAt).toLocaleString(
+                              'ja-JP',
+                              {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              }
+                            )}
                           </div>
                         </div>
                         {isOwnComment && (
@@ -275,4 +271,3 @@ export function CommentSection({
     </div>
   );
 }
-

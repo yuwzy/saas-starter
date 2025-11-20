@@ -377,15 +377,13 @@ export async function getArticleComments(
  * @param commentData - コメントデータ
  * @returns 作成されたコメント
  */
-export async function createArticleComment(
-  commentData: {
-    articleId: number;
-    userId?: number;
-    content: string;
-    authorName?: string;
-    authorEmail?: string;
-  }
-): Promise<ArticleComment> {
+export async function createArticleComment(commentData: {
+  articleId: number;
+  userId?: number;
+  content: string;
+  authorName?: string;
+  authorEmail?: string;
+}): Promise<ArticleComment> {
   const [newComment] = await db
     .insert(articleComments)
     .values({
