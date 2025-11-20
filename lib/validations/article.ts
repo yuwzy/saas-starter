@@ -83,3 +83,23 @@ export const createCategorySchema = z.object({
       'スラッグは小文字英数字とハイフンのみ使用できます'
     ),
 });
+
+/**
+ * コメント作成のバリデーションスキーマ
+ */
+export const createCommentSchema = z.object({
+  articleId: z.coerce.number().positive('記事IDが不正です'),
+  content: z
+    .string()
+    .min(1, 'コメントは必須です')
+    .max(5000, 'コメントは5000文字以内で入力してください'),
+  authorName: z
+    .string()
+    .max(100, '名前は100文字以内で入力してください')
+    .optional(),
+  authorEmail: z
+    .string()
+    .email('メールアドレスの形式が不正です')
+    .max(255, 'メールアドレスは255文字以内で入力してください')
+    .optional(),
+});

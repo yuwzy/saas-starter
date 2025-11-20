@@ -7,6 +7,7 @@ import { getUser } from '@/lib/db/queries';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, User, Tag, Lock } from 'lucide-react';
+import { CommentSection } from './comment-section';
 import type { Metadata } from 'next';
 
 type Props = {
@@ -59,6 +60,7 @@ export default async function ArticlePage({ params }: Props) {
   }
 
   // 公開記事でない場合、チームメンバーかチェック
+  let currentUser = null;
   if (article.status !== 'published') {
     const user = await getUser();
 
@@ -71,6 +73,11 @@ export default async function ArticlePage({ params }: Props) {
     if (!canAccess) {
       notFound();
     }
+
+    currentUser = user;
+  } else {
+    // 公開記事の場合も、ログインしている場合はユーザー情報を取得
+    currentUser = await getUser();
   }
 
   return (
@@ -180,6 +187,20 @@ export default async function ArticlePage({ params }: Props) {
           </time>
         </p>
       </footer>
+
+      {/* コメントセクション */}
+      <CommentSection
+        articleId={article.id}
+        currentUser={
+          currentUser
+            ? {
+                id: currentUser.id,
+                name: currentUser.name,
+                email: currentUser.email,
+              }
+            : null
+        }
+      />
     </article>
   );
 }
