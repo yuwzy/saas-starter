@@ -1,7 +1,19 @@
 import { desc, eq, and, like, or, sql } from 'drizzle-orm';
 import { db } from './drizzle';
-import { articles, categories, articleTags, users } from './schema';
-import type { Article, ArticleWithDetails, Category } from './schema';
+import {
+  articles,
+  categories,
+  articleTags,
+  users,
+  articleComments,
+} from './schema';
+import type {
+  Article,
+  ArticleWithDetails,
+  Category,
+  ArticleComment,
+  ArticleCommentWithAuthor,
+} from './schema';
 
 /**
  * 記事一覧を取得する（ページネーション付き）
@@ -330,4 +342,79 @@ export async function canUserModifyArticle(
 
   // 記事の作成者のみ編集可能
   return article[0].userId === userId;
+}
+
+/**
+ * 記事のコメント一覧を取得する
+ * @param articleId - 記事のID
+ * @returns コメント一覧
+ */
+export async function getArticleComments(
+  articleId: number
+): Promise<ArticleCommentWithAuthor[]> {
+  const comments = await db.query.articleComments.findMany({
+    where: eq(articleComments.articleId, articleId),
+    with: {
+      user: {
+        columns: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: desc(articleComments.createdAt),
+  });
+
+  return comments.map((comment) => ({
+    ...comment,
+    user: comment.user || null,
+  }));
+}
+
+/**
+ * コメントを作成する
+ * @param commentData - コメントデータ
+ * @returns 作成されたコメント
+ */
+export async function createArticleComment(
+  commentData: {
+    articleId: number;
+    userId?: number;
+    content: string;
+    authorName?: string;
+    authorEmail?: string;
+  }
+): Promise<ArticleComment> {
+  const [newComment] = await db
+    .insert(articleComments)
+    .values({
+      ...commentData,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .returning();
+
+  return newComment;
+}
+
+/**
+ * コメントを削除する
+ * @param commentId - コメントのID
+ * @param userId - ユーザーのID（認証済みユーザーのみ削除可能）
+ */
+export async function deleteArticleComment(
+  commentId: number,
+  userId?: number
+): Promise<void> {
+  const conditions = [eq(articleComments.id, commentId)];
+
+  // 認証済みユーザーの場合、自分のコメントのみ削除可能
+  if (userId) {
+    conditions.push(eq(articleComments.userId, userId));
+  }
+
+  await db
+    .delete(articleComments)
+    .where(conditions.length > 1 ? and(...conditions) : conditions[0]);
 }
