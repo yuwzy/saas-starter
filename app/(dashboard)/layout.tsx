@@ -86,7 +86,7 @@ function Header() {
         <Link href="/" className="flex items-center">
           <CircleIcon className="h-6 w-6 text-primary" />
           <span className="ml-2 text-xl font-semibold text-foreground">
-            OpenNote
+            OpenNotes
           </span>
         </Link>
         <div className="flex items-center space-x-4">
