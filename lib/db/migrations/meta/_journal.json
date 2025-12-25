@@ -22,6 +22,13 @@
       "when": 1760513030056,
       "tag": "0002_purple_otto_octavius",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1763625208650,
+      "tag": "0003_giant_meteorite",
+      "breakpoints": true
     }
   ]
 }

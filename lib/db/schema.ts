@@ -74,10 +74,6 @@ export const teamsRelations = relations(teams, ({ many }) => ({
   invitations: many(invitations),
 }));
 
-export const usersRelations = relations(users, ({ many }) => ({
-  teamMembers: many(teamMembers),
-  invitationsSent: many(invitations),
-}));
 
 export const invitationsRelations = relations(invitations, ({ one }) => ({
   team: one(teams, {
@@ -163,17 +159,6 @@ export const articleTags = pgTable('article_tags', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export const articlesRelations = relations(articles, ({ one, many }) => ({
-  author: one(users, {
-    fields: [articles.userId],
-    references: [users.id],
-  }),
-  category: one(categories, {
-    fields: [articles.categoryId],
-    references: [categories.id],
-  }),
-  tags: many(articleTags),
-}));
 
 export const categoriesRelations = relations(categories, ({ many }) => ({
   articles: many(articles),
@@ -186,12 +171,61 @@ export const articleTagsRelations = relations(articleTags, ({ one }) => ({
   }),
 }));
 
+export const articleComments = pgTable('article_comments', {
+  id: serial('id').primaryKey(),
+  articleId: integer('article_id')
+    .notNull()
+    .references(() => articles.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').references(() => users.id),
+  content: text('content').notNull(),
+  authorName: varchar('author_name', { length: 100 }),
+  authorEmail: varchar('author_email', { length: 255 }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const articleCommentsRelations = relations(articleComments, ({ one }) => ({
+  article: one(articles, {
+    fields: [articleComments.articleId],
+    references: [articles.id],
+  }),
+  user: one(users, {
+    fields: [articleComments.userId],
+    references: [users.id],
+  }),
+}));
+
+export const articlesRelations = relations(articles, ({ one, many }) => ({
+  author: one(users, {
+    fields: [articles.userId],
+    references: [users.id],
+  }),
+  category: one(categories, {
+    fields: [articles.categoryId],
+    references: [categories.id],
+  }),
+  tags: many(articleTags),
+  comments: many(articleComments),
+}));
+
+export const usersRelations = relations(users, ({ many }) => ({
+  teamMembers: many(teamMembers),
+  invitationsSent: many(invitations),
+  comments: many(articleComments),
+}));
+
 export type Article = typeof articles.$inferSelect;
 export type NewArticle = typeof articles.$inferInsert;
 export type Category = typeof categories.$inferSelect;
 export type NewCategory = typeof categories.$inferInsert;
 export type ArticleTag = typeof articleTags.$inferSelect;
 export type NewArticleTag = typeof articleTags.$inferInsert;
+export type ArticleComment = typeof articleComments.$inferSelect;
+export type NewArticleComment = typeof articleComments.$inferInsert;
+
+export type ArticleCommentWithAuthor = ArticleComment & {
+  user: Pick<User, 'id' | 'name' | 'email'> | null;
+};
 
 export type ArticleWithDetails = Article & {
   team: Team;
