@@ -75,15 +75,6 @@ git log --oneline -5
 - 変更の理由と詳細を説明
 - 72文字で改行
 
-**Footer:**
-必ず以下のフッターを追加:
-
-```
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
-```
-
 ### 4. コミットの実行
 
 変更をステージングし、HEREDOCを使用してコミット:
@@ -98,10 +89,6 @@ feat(articles): add markdown editor support
 
 Add rich text editing capabilities using react-markdown.
 Includes syntax highlighting and preview mode.
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
 EOF
 )"
 
@@ -134,10 +121,6 @@ Implement new article creation form with:
 - Category selection
 - Tag management
 - Draft/publish toggle
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
 EOF
 )"
 ```
@@ -151,10 +134,6 @@ fix(auth): prevent session token expiry race condition
 
 Fix issue where concurrent requests could cause session
 refresh to fail. Add mutex lock during token refresh.
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
 EOF
 )"
 ```
@@ -169,10 +148,6 @@ refactor(db): extract article queries to separate file
 Move article-related queries from queries.ts to
 articles-queries.ts for better organization and
 maintainability.
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
 EOF
 )"
 ```
@@ -186,10 +161,6 @@ docs: update setup instructions for pnpm
 
 Add missing pnpm install step and clarify database
 setup sequence.
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
 EOF
 )"
 ```
