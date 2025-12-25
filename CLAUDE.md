@@ -136,6 +136,10 @@ Use `ActivityType` enum ([lib/db/schema.ts:207](lib/db/schema.ts#L207)) for cons
 
 ## Code Style
 
+**Comprehensive coding conventions:** See [docs/CODING_CONVENTIONS.md](docs/CODING_CONVENTIONS.md) for detailed guidelines on TypeScript, React, database queries, API routes, Server Actions, error handling, naming conventions, comments, and security practices.
+
+**Quick reference:**
+
 - TypeScript strict mode, React 19 with Server Components default
 - Use `'use client'` only when necessary (forms with `useActionState`, interactive UI)
 - Database columns: `lower_snake_case`; TypeScript: `camelCase`; React: `PascalCase`
