@@ -5,6 +5,7 @@
 /.pnp
 .pnp.js
 .yarn/install-state.gz
+.pnpm-store
 
 # testing
 /coverage
@@ -42,3 +43,4 @@ postgres_data/
 
 # Claude hooks logs
 .claude/logs/
+node_modules
