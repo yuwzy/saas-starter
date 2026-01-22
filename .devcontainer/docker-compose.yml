@@ -1,0 +1,48 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ..:/workspace:cached
+      - node_modules:/workspace/node_modules
+      - pnpm-store:/home/node/.local/share/pnpm
+    user: node
+    command: sleep infinity
+    depends_on:
+      init-permissions:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    environment:
+      - POSTGRES_URL=postgres://postgres:postgres@postgres:5432/postgres
+      - NODE_ENV=development
+
+  init-permissions:
+    image: node:22-bookworm-slim
+    volumes:
+      - node_modules:/workspace/node_modules
+      - pnpm-store:/home/node/.local/share/pnpm
+    command: >
+      sh -c "chown -R 1000:1000 /workspace/node_modules /home/node/.local/share/pnpm"
+    user: root
+
+  postgres:
+    image: postgres:16.4-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  node_modules:
+  pnpm-store:
+  postgres_data:
